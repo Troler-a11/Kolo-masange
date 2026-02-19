@@ -13,7 +13,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;900&display=swap" rel="stylesheet">
 
     <style>
-        :root { --accent: #00e5ff; --bg: #000; --surface: #111; --bubble-me: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%); }
+        :root { --accent: #00e5ff; --bg: #000; --surface: #111; --bubble-me: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%); --green-tick: #00ff88; }
         body { font-family: 'Montserrat', sans-serif; background: var(--bg); color: white; margin: 0; overflow: hidden; height: 100vh; }
         
         .side-menu { transform: translateX(-100%); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000; }
@@ -22,13 +22,14 @@
         .profile-banner { width: 100%; height: 180px; object-fit: cover; border-radius: 0 0 35px 35px; background: #222; }
         .profile-avatar { width: 120px; height: 120px; border-radius: 50%; border: 5px solid var(--bg); margin-top: -60px; object-fit: cover; background: #333; }
         
-        .chat-bubble { max-width: 80%; padding: 12px 18px; border-radius: 22px; font-size: 14px; font-weight: 600; margin-bottom: 8px; animation: slideUp 0.3s ease; cursor: pointer; position: relative; }
+        .chat-bubble { max-width: 80%; padding: 12px 18px; border-radius: 22px; font-size: 14px; font-weight: 600; margin-bottom: 8px; animation: slideUp 0.3s ease; cursor: pointer; position: relative; word-wrap: break-word; }
         .me { background: var(--bubble-me); color: black; align-self: flex-end; border-bottom-right-radius: 4px; }
         .them { background: #222; color: white; align-self: flex-start; border-bottom-left-radius: 4px; }
 
         .video-note { width: 150px; height: 150px; border-radius: 50%; overflow: hidden; border: 2px solid var(--accent); background: #000; flex-shrink: 0; margin-bottom: 10px; position: relative; cursor: pointer; box-shadow: 0 0 15px rgba(0,229,255,0.2); transition: 0.3s; }
         .video-note video { width: 100%; height: 100%; object-fit: cover; }
-        .video-note.fullscreen { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(2); z-index: 5000; width: 250px; height: 250px; box-shadow: 0 0 100px rgba(0,0,0,0.9); border-width: 4px; }
+        /* ВИПРАВЛЕНО: Тепер не вилазить за межі телефону */
+        .video-note.fullscreen { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 5000; width: 85vw; height: 85vw; max-width: 320px; max-height: 320px; border-radius: 50%; box-shadow: 0 0 100px rgba(0,0,0,0.9); border-width: 4px; }
 
         .record-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-blur: 10px; z-index: 3000; display: none; flex-direction: column; align-items: center; justify-content: center; }
         .record-circle { width: 280px; height: 280px; border-radius: 50%; border: 5px solid var(--accent); overflow: hidden; position: relative; margin-bottom: 30px; box-shadow: 0 0 50px var(--accent); }
@@ -63,12 +64,14 @@
         .profile-story-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
         .profile-story-item { aspect-ratio: 9/16; background: #111; border-radius: 15px; overflow: hidden; position: relative; border: 1px solid #222; }
 
-        /* Modal for forwarding */
         .forward-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 7000; display: none; flex-direction: column; padding: 20px; }
         
-        /* New Styles */
-        .msg-status { font-size: 10px; margin-left: 5px; opacity: 0.7; }
-        .unread-badge { background: var(--accent); color: black; font-size: 10px; padding: 2px 6px; border-radius: 10px; min-width: 20px; text-align: center; }
+        /* НОВІ ГАЛОЧКИ */
+        .msg-status-tick { font-size: 12px; margin-left: 6px; font-weight: 900; }
+        .tick-gray { color: #555; }
+        .tick-green { color: var(--green-tick); text-shadow: 0 0 5px rgba(0,255,136,0.3); }
+        
+        .unread-badge { background: var(--accent); color: black; font-size: 10px; padding: 2px 6px; border-radius: 10px; min-width: 20px; text-align: center; font-weight: 900; }
     </style>
 </head>
 <body>
@@ -127,7 +130,7 @@
         </div>
         <div id="reg-details" class="hidden space-y-4 max-w-md mx-auto w-full">
             <h2 class="text-xl font-black text-center mb-6">РЕЄСТРАЦІЯ</h2>
-            <input type="text" id="reg-name" placeholder="Ім'я" class="input-field">
+            <input type="text" id="reg-name" placeholder="Ім'я" class="input-field" maxlength="16">
             <input type="text" id="reg-nick" placeholder="@username" class="input-field">
             <input type="email" id="reg-email" placeholder="Email для коду" class="input-field">
             <input type="date" id="reg-bday" class="input-field">
@@ -242,7 +245,7 @@
 
             <div class="w-full mt-10 space-y-4">
                 <div class="p-6 bg-[#111] rounded-[28px] space-y-4">
-                    <div><p id="p-phone" class="font-bold text-gray-400"></p><p class="text-[9px] text-gray-600 font-black">MOBILE</p></div>
+                    <div><p id="p-last-seen-status" class="text-[10px] text-cyan-400 font-bold mb-1"></p><p id="p-phone" class="font-bold text-gray-400"></p><p class="text-[9px] text-gray-600 font-black">MOBILE</p></div>
                     <div><p id="p-nick-full" class="font-bold text-cyan-400"></p><p class="text-[9px] text-gray-600 font-black">USERNAME</p></div>
                     <div>
                         <input type="text" id="p-bio-input" placeholder="..." class="font-bold bg-transparent outline-none w-full border-b border-white/5">
@@ -298,6 +301,24 @@
             return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25)) + " років";
         }
 
+        function formatTimeAgo(timestamp) {
+            if(!timestamp) return "Давно був";
+            const diff = Date.now() - timestamp;
+            if(diff < 60000) return "В мережі";
+            const mins = Math.floor(diff / 60000);
+            if(mins < 60) return `Був ${mins} хв тому`;
+            const hours = Math.floor(mins / 60);
+            if(hours < 24) return `Був ${hours} год тому`;
+            return "Був нещодавно";
+        }
+
+        function validateAndShortenName(name) {
+            if (name.length > 15) {
+                return name.substring(0, 14) + name.charAt(name.length - 1);
+            }
+            return name;
+        }
+
         async function checkUserAndSendOTP() {
             const phone = document.getElementById('auth-phone').value.trim();
             if(!phone) return;
@@ -322,7 +343,10 @@
             if(document.getElementById('otp-input').value === state.otp) {
                 if(!state.temp) {
                     const nick = document.getElementById('reg-nick').value.replace('@','').trim();
-                    const u = { name: document.getElementById('reg-name').value, nick: nick, email: document.getElementById('reg-email').value, phone: document.getElementById('auth-phone').value, bday: document.getElementById('reg-bday').value, bio: "", avatar: "https://api.dicebear.com/7.x/pixel-art/svg?seed="+Date.now(), banner: "https://images.unsplash.com/photo-1557683316-973673baf926", friends: {}, lastSeen: Date.now() };
+                    let rawName = document.getElementById('reg-name').value;
+                    const cleanName = validateAndShortenName(rawName);
+                    
+                    const u = { name: cleanName, nick: nick, email: document.getElementById('reg-email').value, phone: document.getElementById('auth-phone').value, bday: document.getElementById('reg-bday').value, bio: "", avatar: "https://api.dicebear.com/7.x/pixel-art/svg?seed="+Date.now(), banner: "https://images.unsplash.com/photo-1557683316-973673baf926", friends: {}, lastSeen: Date.now() };
                     await DB.ref('kolo_users/' + u.nick).set(u);
                     state.user = u;
                 } else state.user = state.temp;
@@ -342,26 +366,33 @@
             document.getElementById('chat-head-av').src = av;
             document.getElementById('chat-head-name').innerText = name;
             
+            const cid = [state.user.nick, nick].sort().join('_');
+            
+            // Відключаємо старі прослуховувачі щоб не "двоїлося"
+            DB.ref(`kolo_status/${nick}`).off();
+            DB.ref('kolo_msgs/'+cid).off();
+
             DB.ref(`kolo_status/${nick}`).on('value', s => {
                 const stat = s.val();
                 const el = document.getElementById('chat-status');
                 DB.ref(`kolo_users/${nick}/lastSeen`).once('value', lss => {
-                    const isOnline = (Date.now() - lss.val()) < 120000;
+                    const lastSeenVal = lss.val();
+                    const isOnline = (Date.now() - lastSeenVal) < 60000;
                     if(stat && stat.target === state.user.nick && (Date.now() - stat.time) < 3000) el.innerText = stat.text.toUpperCase();
-                    else el.innerText = isOnline ? "ONLINE" : "OFFLINE";
+                    else el.innerText = isOnline ? "ONLINE" : formatTimeAgo(lastSeenVal).toUpperCase();
                     el.style.color = isOnline ? "#00e5ff" : "#666";
                 });
             });
 
-            const cid = [state.user.nick, nick].sort().join('_');
             DB.ref('kolo_msgs/'+cid).on('value', s => {
-                const area = document.getElementById('messages-area'); area.innerHTML = '';
+                const area = document.getElementById('messages-area'); 
+                area.innerHTML = ''; // Очищуємо перед рендером
                 if(s.val()) Object.entries(s.val()).forEach(([id, m]) => {
                     if(m.sender !== state.user.nick && !m.read) DB.ref(`kolo_msgs/${cid}/${id}/read`).set(true);
                     
                     let content = '';
                     if(m.type === 'circle') content = `<video src="${m.text}" loop playsinline></video>`;
-                    else if(m.type === 'audio') content = `<div class="voice-bubble"><svg class="wave-icon" viewBox="0 0 24 24"><path d="M5 12h2v2H5v-2zm4-4h2v10H9V8zm4-4h2v18h-2V4zm4 8h2v2h-2v-2z"/></svg><span class="text-[10px]">Голосове повідомлення</span></div><audio src="${m.text}"></audio>`;
+                    else if(m.type === 'audio') content = `<div class="voice-bubble"><svg class="wave-icon" viewBox="0 0 24 24"><path d="M5 12h2v2H5v-2zm4-4h2v10H9V8zm4-4h2v18h-2V4zm4 8h2v2h-2v-2z"/></svg></div><audio src="${m.text}"></audio>`;
                     else if(m.type === 'image') content = `<img src="${m.text}" class="rounded-lg max-w-full">`;
                     else if(m.type === 'video') content = `<video src="${m.text}" controls class="rounded-lg max-w-full"></video>`;
                     else content = `<p>${m.text}</p>`;
@@ -370,11 +401,17 @@
                     const sClass = m.sender === state.user.nick ? 'me' : 'them';
                     const cClass = m.sender === state.user.nick ? 'self-end' : 'self-start';
                     
-                    const ticks = m.sender === state.user.nick ? `<span class="msg-status" style="color: ${m.read ? '#00e5ff' : '#888'}">${m.read ? '✓✓' : '✓'}</span>` : '';
+                    // Галочки: сіра одна, зелені дві
+                    let tickHtml = '';
+                    if(m.sender === state.user.nick) {
+                        tickHtml = m.read 
+                            ? `<span class="msg-status-tick tick-green">✓✓</span>` 
+                            : `<span class="msg-status-tick tick-gray">✓</span>`;
+                    }
                     
                     const div = document.createElement('div');
                     div.className = `${cClass} ${bClass} ${sClass}`;
-                    div.innerHTML = content + ticks;
+                    div.innerHTML = content + tickHtml;
                     
                     div.oncontextmenu = (e) => showContextMenu(e, id, m.text, m.type);
                     div.onclick = () => {
@@ -397,8 +434,8 @@
             const label = document.getElementById('rec-status-label');
             
             document.getElementById('rec-timer').innerText = "00:00";
-            label.innerText = type === 'video' ? "Запис відео-повідомлення" : "Запис аудіо-повідомлення";
-            updateStatus(type === 'video' ? 'записує відео...' : 'записує голос...');
+            label.innerText = type === 'video' ? "Запис відео-послання" : "Запис аудіо";
+            updateStatus(type === 'video' ? 'записує кружечок...' : 'записує голос...');
 
             try {
                 const constraints = type === 'video' ? { video: { width: 480, height: 480 }, audio: true } : { audio: true };
@@ -408,24 +445,28 @@
                 else { preview.classList.add('hidden'); visual.classList.remove('hidden'); }
                 
                 overlay.style.display = 'flex';
-                state.mediaRecorder = new MediaRecorder(stream, { mimeType: type === 'video' ? 'video/webm;codecs=vp8,opus' : 'audio/webm' });
+                state.mediaRecorder = new MediaRecorder(stream);
                 state.chunks = [];
                 state.mediaRecorder.ondataavailable = e => { if(e.data.size > 0) state.chunks.push(e.data); };
-                state.mediaRecorder.start(1000);
+                state.mediaRecorder.start();
                 
                 let sec = 0;
                 state.timerInterval = setInterval(() => {
                     sec++;
-                    let m = Math.floor(sec/60).toString().padStart(2, '0');
-                    let s = (sec%60).toString().padStart(2, '0');
-                    document.getElementById('rec-timer').innerText = `${m}:${s}`;
-                    if(sec >= 120) stopRecording(true);
+                    let s = sec.toString().padStart(2, '0');
+                    document.getElementById('rec-timer').innerText = `00:${s}`;
+                    
+                    // АВТОВІДПРАВКА НА 25 СЕКУНДІ
+                    if(sec >= 25) {
+                        stopRecording(true);
+                    }
                 }, 1000);
-            } catch(e) { alert("Помилка камери/мікрофона"); }
+            } catch(e) { alert("Доступ заборонено"); }
         }
 
         function stopRecording(send) {
             clearInterval(state.timerInterval);
+            if (!state.mediaRecorder) return;
             const isVideo = state.mediaRecorder.stream.getVideoTracks().length > 0;
             const type = isVideo ? 'circle' : 'audio';
             
@@ -433,10 +474,7 @@
                 if(send && state.chunks.length > 0) {
                     const blob = new Blob(state.chunks, { type: isVideo ? 'video/mp4' : 'audio/webm' });
                     const reader = new FileReader();
-                    reader.onloadend = () => {
-                        const base64data = reader.result;
-                        sendMedia(base64data, type);
-                    };
+                    reader.onloadend = () => sendMedia(reader.result, type);
                     reader.readAsDataURL(blob);
                 }
                 state.mediaRecorder.stream.getTracks().forEach(t => t.stop());
@@ -456,7 +494,6 @@
                 await DB.ref(`kolo_stories_db/${state.user.nick}/${id}`).set({
                     src: reader.result, type: type, time: id, likes: 0, owner: state.user.nick, ownerAv: state.user.avatar
                 });
-                if(state.viewingNick === state.user.nick) renderProfile(state.user);
             };
             reader.readAsDataURL(file);
         }
@@ -470,6 +507,7 @@
             document.getElementById('p-bio-input').value = u.bio || "";
             document.getElementById('p-bday-input').value = u.bday || "";
             document.getElementById('p-age-calc').innerText = "(" + calculateAge(u.bday) + ")";
+            document.getElementById('p-last-seen-status').innerText = formatTimeAgo(u.lastSeen).toUpperCase();
             
             const myStories = document.getElementById('p-my-stories');
             myStories.innerHTML = '';
@@ -537,7 +575,6 @@
             const story = state.storyQueue[state.currentStoryIndex];
             await DB.ref(`kolo_stories_db/${state.user.nick}/${story.time}`).remove();
             closeStories();
-            renderProfile(state.user);
         }
 
         function closeStories() { document.getElementById('story-viewer').classList.add('hidden'); clearTimeout(state.storyTimer); }
@@ -545,7 +582,6 @@
         async function likeStory() {
             const s = state.storyQueue[state.currentStoryIndex];
             await DB.ref(`kolo_stories_db/${s.owner}/${s.time}/likes`).transaction(c => (c || 0) + 1);
-            document.getElementById('story-likes').innerText = (s.likes || 0) + 1;
         }
 
         function dislikeStory() {
@@ -568,8 +604,7 @@
             const cid = [state.user.nick, target].sort().join('_');
             const msg = { sender: state.user.nick, text: data, type: type, time: Date.now(), read: false };
             await DB.ref('kolo_msgs/'+cid).push(msg);
-            const labels = {circle: '🎥 Відео-повідомлення', audio: '🎤 Голосове повідомлення', image: '📎 Фото', video: '📽️ Відео'};
-            const label = labels[type] || '📎 Файл';
+            const label = type === 'circle' ? '🎥 Кружечок' : '🎤 Голосове';
             DB.ref(`kolo_chats/${state.user.nick}/${target}`).set({ last: label, time: Date.now() });
             DB.ref(`kolo_chats/${target}/${state.user.nick}`).set({ last: label, time: Date.now() });
         }
@@ -581,8 +616,8 @@
             state.selectedMsgType = type;
             const menu = document.getElementById('msg-context-menu');
             menu.style.display = 'block';
-            menu.style.left = Math.min(e.pageX || (e.touches ? e.touches[0].pageX : 0), window.innerWidth - 150) + 'px';
-            menu.style.top = Math.min(e.pageY || (e.touches ? e.touches[0].pageY : 0), window.innerHeight - 150) + 'px';
+            menu.style.left = Math.min(e.pageX, window.innerWidth - 150) + 'px';
+            menu.style.top = Math.min(e.pageY, window.innerHeight - 150) + 'px';
         }
 
         async function openForward() {
@@ -591,7 +626,6 @@
             const list = document.getElementById('forward-list');
             modal.style.display = 'flex';
             list.innerHTML = '';
-            
             const snap = await DB.ref(`kolo_chats/${state.user.nick}`).once('value');
             if(snap.val()) {
                 for(let nick in snap.val()) {
@@ -600,16 +634,16 @@
                     if(u) {
                         const div = document.createElement('div');
                         div.className = "p-4 bg-[#111] rounded-2xl flex items-center gap-4";
-                        div.innerHTML = `<img src="${u.avatar}" class="w-10 h-10 rounded-full"><div><p class="font-bold">${u.name}</p></div>`;
-                        div.onclick = () => { sendMedia(state.selectedMsgText, state.selectedMsgType, u.nick); closeForward(); alert("Переслано!"); };
+                        div.innerHTML = `<img src="${u.avatar}" class="w-10 h-10 rounded-full"><p>${u.name}</p>`;
+                        div.onclick = () => { sendMedia(state.selectedMsgText, state.selectedMsgType, u.nick); closeForward(); };
                         list.appendChild(div);
                     }
                 }
             }
         }
         function closeForward() { document.getElementById('forward-modal').style.display = 'none'; }
-
         function hideMenu() { document.getElementById('msg-context-menu').style.display = 'none'; }
+        
         async function handleDeleteMsg() {
             const cid = [state.user.nick, state.activeChat].sort().join('_');
             await DB.ref(`kolo_msgs/${cid}/${state.selectedMsgId}`).remove();
@@ -624,7 +658,7 @@
                 Object.keys(snap.val()).forEach(nick => {
                     const stories = Object.values(snap.val()[nick]);
                     const last = stories[stories.length - 1];
-                    if((Date.now() - last.time) < 86400000 && (nick === state.user.nick || (state.user.friends && state.user.friends[nick]))) {
+                    if((Date.now() - last.time) < 86400000) {
                         list.innerHTML += `<div class="flex flex-col items-center gap-1" onclick="viewUserStories('${nick}')"><div class="story-circle"><img src="${last.ownerAv}" class="story-img"></div><span class="text-[9px] font-bold text-gray-400">${nick}</span></div>`;
                     }
                 });
@@ -638,11 +672,11 @@
                     const u = uSnap.val();
                     if(u) {
                         const cid = [state.user.nick, nick].sort().join('_');
-                        DB.ref(`kolo_msgs/${cid}`).once('value', msgsSnap => {
-                            let unreadCount = 0;
-                            if(msgsSnap.val()) Object.values(msgsSnap.val()).forEach(m => { if(m.sender !== state.user.nick && !m.read) unreadCount++; });
-                            const badge = unreadCount > 0 ? `<span class="unread-badge">${unreadCount}</span>` : '';
-                            list.innerHTML += `<div onclick="openChat('${u.nick}','${u.avatar}','${u.name}')" class="flex items-center gap-4 p-4 bg-[#111] rounded-[24px]"><img src="${u.avatar}" class="w-14 h-14 rounded-full object-cover"><div class="flex-1 font-bold"><h4>${u.name}</h4><p class="text-xs text-gray-500 truncate">${data.last}</p></div>${badge}</div>`;
+                        DB.ref(`kolo_msgs/${cid}`).once('value', ms => {
+                            let unread = 0;
+                            if(ms.val()) Object.values(ms.val()).forEach(m => { if(m.sender !== state.user.nick && !m.read) unread++; });
+                            const b = unread > 0 ? `<span class="unread-badge">${unread}</span>` : '';
+                            list.innerHTML += `<div onclick="openChat('${u.nick}','${u.avatar}','${u.name}')" class="flex items-center gap-4 p-4 bg-[#111] rounded-[24px]"><img src="${u.avatar}" class="w-14 h-14 rounded-full object-cover"><div class="flex-1 font-bold"><h4>${u.name}</h4><p class="text-xs text-gray-500 truncate">${data.last}</p></div>${b}</div>`;
                         });
                     }
                 }
@@ -662,7 +696,7 @@
             for(let id in snap.val()) {
                 if(id.includes(val.toLowerCase()) && id !== state.user.nick) {
                     const u = snap.val()[id];
-                    results.innerHTML += `<div class="p-4 bg-[#111] rounded-2xl flex items-center gap-4" onclick="viewForeignProfile('${u.nick}')"><img src="${u.avatar}" class="w-12 h-12 rounded-full object-cover"><div><h4 class="font-bold">${u.name}</h4><p class="text-xs text-cyan-400">@${u.nick}</p></div></div>`;
+                    results.innerHTML += `<div class="p-4 bg-[#111] rounded-2xl flex items-center gap-4" onclick="viewForeignProfile('${u.nick}')"><img src="${u.avatar}" class="w-12 h-12 rounded-full"><div><h4 class="font-bold">${u.name}</h4><p class="text-xs text-cyan-400">@${u.nick}</p></div></div>`;
                 }
             }
         }
@@ -686,8 +720,7 @@
         function uploadMedia(input, type) {
             const reader = new FileReader();
             reader.onload = async () => {
-                const update = {}; update[type] = reader.result;
-                await DB.ref('kolo_users/'+state.user.nick).update(update);
+                await DB.ref('kolo_users/'+state.user.nick).update({ [type]: reader.result });
                 state.user[type] = reader.result;
                 localStorage.setItem('kolo_v2', JSON.stringify(state.user));
                 renderProfile(state.user);
@@ -720,9 +753,15 @@
             }
         };
 
-        document.getElementById('p-name-input').onchange = (e) => { DB.ref('kolo_users/'+state.user.nick).update({name: e.target.value}); state.user.name = e.target.value; localStorage.setItem('kolo_v2', JSON.stringify(state.user)); };
-        document.getElementById('p-bio-input').onchange = (e) => { DB.ref('kolo_users/'+state.user.nick).update({bio: e.target.value}); state.user.name = e.target.value; localStorage.setItem('kolo_v2', JSON.stringify(state.user)); };
-        document.getElementById('p-bday-input').onchange = (e) => { DB.ref('kolo_users/'+state.user.nick).update({bday: e.target.value}); state.user.name = e.target.value; localStorage.setItem('kolo_v2', JSON.stringify(state.user)); };
+        document.getElementById('p-name-input').onchange = (e) => { 
+            const newName = validateAndShortenName(e.target.value);
+            e.target.value = newName;
+            DB.ref('kolo_users/'+state.user.nick).update({name: newName}); 
+            state.user.name = newName; 
+            localStorage.setItem('kolo_v2', JSON.stringify(state.user)); 
+        };
+        document.getElementById('p-bio-input').onchange = (e) => { DB.ref('kolo_users/'+state.user.nick).update({bio: e.target.value}); state.user.bio = e.target.value; localStorage.setItem('kolo_v2', JSON.stringify(state.user)); };
+        document.getElementById('p-bday-input').onchange = (e) => { DB.ref('kolo_users/'+state.user.nick).update({bday: e.target.value}); state.user.bday = e.target.value; localStorage.setItem('kolo_v2', JSON.stringify(state.user)); };
     </script>
 </body>
 </html>
