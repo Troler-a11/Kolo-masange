@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KOLO | NEXT-GEN MESSENGER</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700;900&family=JetBrains+Mono&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --accent: #6366f1; /* Indigo light */
+            --bg: #000000;
+            --surface: #111111;
+        }
+
+        body { font-family: 'Montserrat', sans-serif; background: var(--bg); color: white; margin: 0; overflow-x: hidden; }
+        
+        /* Glassmorphism & UI Elements */
+        .kolo-card { background: var(--surface); border: 1px solid #222; border-radius: 28px; }
+        .input-field { background: #1a1a1a; border: 1.5px solid #333; border-radius: 18px; padding: 16px; width: 100%; color: white; outline: none; transition: 0.3s; }
+        .input-field:focus { border-color: var(--accent); box-shadow: 0 0 15px rgba(99, 102, 241, 0.3); }
+        
+        .btn-primary { background: var(--accent); color: white; font-weight: 800; border-radius: 20px; padding: 16px; width: 100%; transition: 0.2s; }
+        .btn-primary:active { transform: scale(0.97); }
+
+        /* Stories */
+        .story-ring { width: 75px; height: 75px; border-radius: 50%; padding: 3px; background: linear-gradient(45deg, #6366f1, #a855f7, #ec4899); flex-shrink: 0; }
+        .story-img { width: 100%; height: 100%; border-radius: 50%; border: 3px solid black; object-fit: cover; }
+
+        /* Profile Header */
+        .profile-banner { width: 100%; height: 180px; object-fit: cover; border-radius: 0 0 40px 40px; }
+        
+        .hidden { display: none !important; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* Animations */
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        .page-active { animation: slideIn 0.3s ease-out forwards; }
+    </style>
+</head>
+<body class="pb-24">
+
+    <div id="auth-screen" class="fixed inset-0 z-[9999] bg-black p-6 flex flex-col justify-center">
+        <div id="reg-form" class="space-y-6">
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-black italic tracking-tighter">KOLO<span class="text-indigo-500">.</span></h1>
+                <p class="text-gray-500 text-xs uppercase tracking-widest mt-2 font-bold">Створення акаунту</p>
+            </div>
+
+            <div class="flex justify-center gap-4 mb-4">
+                <div onclick="document.getElementById('file-avatar').click()" class="w-20 h-20 rounded-3xl bg-neutral-900 border-2 border-dashed border-neutral-700 flex items-center justify-center overflow-hidden">
+                    <span id="av-label" class="text-[10px] text-gray-500 font-bold">AVATAR</span>
+                    <img id="av-preview" class="hidden w-full h-full object-cover">
+                </div>
+                <div onclick="document.getElementById('file-banner').click()" class="flex-1 h-20 rounded-3xl bg-neutral-900 border-2 border-dashed border-neutral-700 flex items-center justify-center overflow-hidden">
+                    <span id="bn-label" class="text-[10px] text-gray-500 font-bold">BANNER (ШАПКА)</span>
+                    <img id="bn-preview" class="hidden w-full h-full object-cover">
+                </div>
+            </div>
+
+            <input type="file" id="file-avatar" class="hidden" accept="image/*">
+            <input type="file" id="file-banner" class="hidden" accept="image/*">
+
+            <div class="space-y-3">
+                <input type="text" id="r-name" placeholder="Ім'я та Прізвище" class="input-field">
+                <input type="text" id="r-nick" placeholder="@username_id" class="input-field">
+                <input type="tel" id="r-phone" placeholder="+380 00 000 0000" class="input-field">
+                <input type="email" id="r-email" placeholder="Твій Email (для пароля)" class="input-field">
+                <input type="date" id="r-bday" class="input-field">
+            </div>
+
+            <button onclick="startKoloRegistration()" class="btn-primary">ЗАРЕЄСТРУВАТИСЯ</button>
+            <p class="text-center text-xs text-gray-500">Вже є KOLO? <span class="text-indigo-400 font-bold cursor-pointer">Увійти</span></p>
+        </div>
+
+        <div id="otp-form" class="hidden space-y-8 text-center">
+            <h2 class="text-2xl font-black">ПЕРЕВІР ПОШТУ</h2>
+            <p class="text-gray-400 text-sm">Ми надіслали код на ваш email для підтвердження</p>
+            <input type="text" id="otp-input" maxlength="6" class="w-full text-center text-5xl font-black bg-transparent border-b-4 border-indigo-500 py-4 outline-none tracking-widest text-indigo-500">
+            <button onclick="verifyKoloAccount()" class="btn-primary">ПІДТВЕРДИТИ</button>
+        </div>
+    </div>
+
+    <header class="p-6 flex justify-between items-center">
+        <h2 class="text-2xl font-black italic">KOLO<span class="text-indigo-500">.</span></h2>
+        <div class="flex gap-4">
+            <div id="offline-status" class="bg-red-500/20 text-red-500 text-[8px] font-black px-3 py-1 rounded-full hidden">OFFLINE MODE</div>
+            <button class="w-10 h-10 rounded-full bg-neutral-900 flex items-center justify-center">🔍</button>
+        </div>
+    </header>
+
+    <div class="px-4 mb-8">
+        <h3 class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Історії друзів</h3>
+        <div id="kolo-stories" class="flex gap-4 overflow-x-auto no-scrollbar">
+            <div class="flex flex-col items-center gap-2" onclick="postNewStory()">
+                <div class="w-[75px] h-[75px] rounded-full border-2 border-dashed border-gray-700 flex items-center justify-center">
+                    <span class="text-2xl text-gray-500">+</span>
+                </div>
+                <span class="text-[10px] font-bold">Моя</span>
+            </div>
+            </div>
+    </div>
+
+    <main id="chat-list" class="px-6 space-y-4">
+        </main>
+
+    <div id="profile-page" class="hidden fixed inset-0 bg-black z-[100] overflow-y-auto">
+        <button onclick="togglePage('profile', false)" class="absolute top-6 left-6 z-10 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center">←</button>
+        <img id="p-banner" class="profile-banner" src="">
+        <div class="px-8 -mt-12 flex flex-col items-center">
+            <img id="p-avatar" class="w-32 h-32 rounded-[2.5rem] border-8 border-black object-cover mb-4">
+            <h2 id="p-name" class="text-2xl font-black italic"></h2>
+            <p id="p-nick" class="text-indigo-500 text-sm font-bold"></p>
+            <p id="p-bday-info" class="text-gray-500 text-[10px] mt-2"></p>
+            
+            <div id="bday-alert" class="hidden mt-6 w-full p-4 bg-indigo-500 rounded-3xl flex items-center gap-4">
+                <span class="text-2xl">🎂</span>
+                <div class="text-xs font-black">СЬОГОДНІ ДЕНЬ НАРОДЖЕННЯ!</div>
+            </div>
+        </div>
+    </main>
+
+    <nav class="fixed bottom-0 inset-x-0 h-20 bg-black/80 backdrop-blur-xl border-t border-neutral-900 flex justify-around items-center px-10">
+        <button onclick="togglePage('chats')" class="text-indigo-500">💬</button>
+        <button onclick="togglePage('friends')">👥</button>
+        <button onclick="togglePage('profile')">👤</button>
+    </nav>
+
+    <script>
+        // Ініціалізація Firebase (використовуємо твій лінк для збереження контенту)
+        const KOLO_CONFIG = { databaseURL: "https://gameshop-ff113-default-rtdb.firebaseio.com/" };
+        firebase.initializeApp(KOLO_CONFIG);
+        const DB = firebase.database();
+        emailjs.init("KErbU8_xE37eaf0qi");
+
+        let current_kolo_user = JSON.parse(localStorage.getItem('kolo_v1')) || null;
+        let auth_otp = null;
+        let temp_imgs = { av: null, bn: null };
+
+        // Handle Image Previews
+        document.getElementById('file-avatar').onchange = (e) => handleImg(e, 'av');
+        document.getElementById('file-banner').onchange = (e) => handleImg(e, 'bn');
+
+        function handleImg(e, type) {
+            const reader = new FileReader();
+            reader.onload = () => {
+                temp_imgs[type] = reader.result;
+                document.getElementById(`${type}-preview`).src = reader.result;
+                document.getElementById(`${type}-preview`).classList.remove('hidden');
+                document.getElementById(`${type}-label`).classList.add('hidden');
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        }
+
+        // Registration Logic
+        async function startKoloRegistration() {
+            const email = document.getElementById('r-email').value;
+            const nick = document.getElementById('r-nick').value.trim();
+            
+            if(!email || !nick) return alert("Заповни всі поля!");
+
+            auth_otp = Math.floor(100000 + Math.random() * 900000).toString();
+            
+            emailjs.send('service_dbkrnz9', 'template_n90xvc9', {
+                to_email: email,
+                otp_code: auth_otp
+            }).then(() => {
+                document.getElementById('reg-form').classList.add('hidden');
+                document.getElementById('otp-form').classList.remove('hidden');
+            });
+        }
+
+        function verifyKoloAccount() {
+            if(document.getElementById('otp-input').value === auth_otp) {
+                const user = {
+                    name: document.getElementById('r-name').value,
+                    nick: document.getElementById('r-nick').value,
+                    phone: document.getElementById('r-phone').value,
+                    email: document.getElementById('r-email').value,
+                    bday: document.getElementById('r-bday').value,
+                    avatar: temp_imgs.av || "https://api.dicebear.com/7.x/avataaars/svg?seed=kolo",
+                    banner: temp_imgs.bn || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe",
+                    status: "KOLO User",
+                    regDate: Date.now()
+                };
+                DB.ref('kolo_users/' + user.nick.replace('@', '')).set(user);
+                localStorage.setItem('kolo_v1', JSON.stringify(user));
+                location.reload();
+            }
+        }
+
+        // Navigation & Status
+        function togglePage(page, show = true) {
+            if(page === 'profile') {
+                document.getElementById('profile-page').classList.toggle('hidden', !show);
+                loadProfileData();
+            }
+        }
+
+        function loadProfileData() {
+            const u = current_kolo_user;
+            document.getElementById('p-avatar').src = u.avatar;
+            document.getElementById('p-banner').src = u.banner;
+            document.getElementById('p-name').innerText = u.name;
+            document.getElementById('p-nick').innerText = u.nick;
+            document.getElementById('p-bday-info').innerText = "Народження: " + u.bday;
+            
+            // Birthday check
+            const today = new Date().toISOString().slice(5, 10);
+            if(u.bday.slice(5, 10) === today) {
+                document.getElementById('bday-alert').classList.remove('hidden');
+            }
+        }
+
+        // Offline Logic
+        window.addEventListener('offline', () => {
+            document.getElementById('offline-status').classList.remove('hidden');
+        });
+        window.addEventListener('online', () => {
+            document.getElementById('offline-status').classList.add('hidden');
+        });
+
+        window.onload = () => {
+            if(current_kolo_user) {
+                document.getElementById('auth-screen').classList.add('hidden');
+                loadProfileData();
+            }
+        };
+    </script>
+</body>
+</html>
