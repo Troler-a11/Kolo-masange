@@ -14,7 +14,7 @@
 
     <style>
         :root { --accent: #00e5ff; --bg: #000; --surface: #111; --bubble-me: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%); --green-tick: #00ff88; }
-        body { font-family: 'Montserrat', sans-serif; background: var(--bg); color: white; margin: 0; overflow: hidden; height: 100vh; }
+        body { font-family: 'Montserrat', sans-serif; background: var(--bg); color: white; margin: 0; overflow-y: auto; height: 100vh; }
         
         .side-menu { transform: translateX(-100%); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000; }
         .side-menu.active { transform: translateX(0); }
@@ -28,7 +28,6 @@
 
         .video-note { width: 150px; height: 150px; border-radius: 50%; overflow: hidden; border: 2px solid var(--accent); background: #000; flex-shrink: 0; margin-bottom: 10px; position: relative; cursor: pointer; box-shadow: 0 0 15px rgba(0,229,255,0.2); transition: 0.3s; }
         .video-note video { width: 100%; height: 100%; object-fit: cover; }
-        /* ВИПРАВЛЕНО: Тепер не вилазить за межі телефону */
         .video-note.fullscreen { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 5000; width: 85vw; height: 85vw; max-width: 320px; max-height: 320px; border-radius: 50%; box-shadow: 0 0 100px rgba(0,0,0,0.9); border-width: 4px; }
 
         .record-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-blur: 10px; z-index: 3000; display: none; flex-direction: column; align-items: center; justify-content: center; }
@@ -51,7 +50,7 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        .custom-menu { position: fixed; background: #222; border-radius: 15px; padding: 8px; z-index: 5000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #444; }
+        .custom-menu { position: fixed; background: #222; border-radius: 15px; padding: 8px; z-index: 6000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #444; }
         .custom-menu button { display: block; width: 100%; text-align: left; padding: 10px 20px; color: white; font-weight: bold; font-size: 14px; }
         .custom-menu button.del { color: #ff4444; }
 
@@ -66,7 +65,6 @@
 
         .forward-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 7000; display: none; flex-direction: column; padding: 20px; }
         
-        /* НОВІ ГАЛОЧКИ */
         .msg-status-tick { font-size: 12px; margin-left: 6px; font-weight: 900; }
         .tick-gray { color: #555; }
         .tick-green { color: var(--green-tick); text-shadow: 0 0 5px rgba(0,255,136,0.3); }
@@ -214,7 +212,7 @@
                     <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                 </button>
                 <input type="file" id="chat-file" class="hidden" accept="image/*,video/*" onchange="uploadChatFile(this)">
-                <input type="text" id="msg-input" placeholder="Повідомлення..." class="flex-1 input-field" oninput="updateStatus('пише...')">
+                <input type="text" id="msg-input" placeholder="Повідомлення..." class="flex-1 input-field" oninput="debouncedStatusUpdate()">
                 <button onclick="sendMsg()" class="w-14 h-12 bg-cyan-400 rounded-2xl flex items-center justify-center text-black font-black">
                      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
                 </button>
@@ -292,7 +290,8 @@
             selectedMsgType: null,
             storyQueue: [],
             currentStoryIndex: 0,
-            storyTimer: null
+            storyTimer: null,
+            statusDebounceTimer: null
         };
 
         function calculateAge(birthday) {
@@ -342,7 +341,11 @@
         async function verifySession() {
             if(document.getElementById('otp-input').value === state.otp) {
                 if(!state.temp) {
-                    const nick = document.getElementById('reg-nick').value.replace('@','').trim();
+                    const nick = document.getElementById('reg-nick').value.replace('@','').trim().toLowerCase();
+                    // ПЕРЕВІРКА НА ЗАЙНЯТИЙ НІК (БЕЗПЕКА)
+                    const checkNick = await DB.ref('kolo_users/' + nick).once('value');
+                    if(checkNick.exists()) { alert('Цей нік вже зайнято!'); return; }
+
                     let rawName = document.getElementById('reg-name').value;
                     const cleanName = validateAndShortenName(rawName);
                     
@@ -355,8 +358,13 @@
             }
         }
 
+        function debouncedStatusUpdate() {
+            clearTimeout(state.statusDebounceTimer);
+            state.statusDebounceTimer = setTimeout(() => updateStatus('пише...'), 500);
+        }
+
         function updateStatus(text) {
-            if(!state.activeChat) return;
+            if(!state.activeChat || !state.user) return;
             DB.ref(`kolo_status/${state.user.nick}`).set({ target: state.activeChat, text: text, time: Date.now() });
         }
 
@@ -368,7 +376,7 @@
             
             const cid = [state.user.nick, nick].sort().join('_');
             
-            // Відключаємо старі прослуховувачі щоб не "двоїлося"
+            // ОЧИЩЕННЯ ПОПЕРЕДНІХ СЛУХАЧІВ (ВИПРАВЛЕНО ВИТІК ПАМ'ЯТІ)
             DB.ref(`kolo_status/${nick}`).off();
             DB.ref('kolo_msgs/'+cid).off();
 
@@ -386,7 +394,8 @@
 
             DB.ref('kolo_msgs/'+cid).on('value', s => {
                 const area = document.getElementById('messages-area'); 
-                area.innerHTML = ''; // Очищуємо перед рендером
+                const fragment = document.createDocumentFragment(); // Оптімізація DOM
+                
                 if(s.val()) Object.entries(s.val()).forEach(([id, m]) => {
                     if(m.sender !== state.user.nick && !m.read) DB.ref(`kolo_msgs/${cid}/${id}/read`).set(true);
                     
@@ -401,7 +410,6 @@
                     const sClass = m.sender === state.user.nick ? 'me' : 'them';
                     const cClass = m.sender === state.user.nick ? 'self-end' : 'self-start';
                     
-                    // Галочки: сіра одна, зелені дві
                     let tickHtml = '';
                     if(m.sender === state.user.nick) {
                         tickHtml = m.read 
@@ -421,8 +429,10 @@
                             if(div.classList.contains('fullscreen')) { v.muted = false; v.play(); } else { v.muted = true; }
                         } else if(m.type === 'audio') { div.querySelector('audio').play(); }
                     };
-                    area.appendChild(div);
+                    fragment.appendChild(div);
                 });
+                area.innerHTML = ''; 
+                area.appendChild(fragment);
                 area.scrollTop = area.scrollHeight;
             });
         }
@@ -438,7 +448,7 @@
             updateStatus(type === 'video' ? 'записує кружечок...' : 'записує голос...');
 
             try {
-                const constraints = type === 'video' ? { video: { width: 480, height: 480 }, audio: true } : { audio: true };
+                const constraints = type === 'video' ? { video: { width: 320, height: 320 }, audio: true } : { audio: true };
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 
                 if(type === 'video') { preview.srcObject = stream; preview.classList.remove('hidden'); visual.classList.add('hidden'); }
@@ -455,11 +465,7 @@
                     sec++;
                     let s = sec.toString().padStart(2, '0');
                     document.getElementById('rec-timer').innerText = `00:${s}`;
-                    
-                    // АВТОВІДПРАВКА НА 25 СЕКУНДІ
-                    if(sec >= 25) {
-                        stopRecording(true);
-                    }
+                    if(sec >= 25) stopRecording(true);
                 }, 1000);
             } catch(e) { alert("Доступ заборонено"); }
         }
@@ -477,6 +483,7 @@
                     reader.onloadend = () => sendMedia(reader.result, type);
                     reader.readAsDataURL(blob);
                 }
+                // ФІКС: ЗАКРИВАЄМО ВСІ ТРЕКИ СТРІМУ
                 state.mediaRecorder.stream.getTracks().forEach(t => t.stop());
                 updateStatus('в мережі');
             };
@@ -487,6 +494,7 @@
         async function uploadStory(input) {
             const file = input.files[0];
             if(!file) return;
+            if(file.size > 5242880) { alert('Файл завеликий! (max 5MB)'); return; }
             const reader = new FileReader();
             reader.onload = async () => {
                 const id = Date.now();
@@ -499,6 +507,7 @@
         }
 
         function renderProfile(u) {
+            if(!u) return;
             document.getElementById('p-avatar').src = u.avatar || "";
             document.getElementById('p-banner').src = u.banner || "";
             document.getElementById('p-name-input').value = u.name;
@@ -598,13 +607,14 @@
             DB.ref(`kolo_chats/${state.user.nick}/${state.activeChat}`).set({ last: i.value, time: Date.now() });
             DB.ref(`kolo_chats/${state.activeChat}/${state.user.nick}`).set({ last: i.value, time: Date.now() });
             i.value = '';
+            updateStatus('в мережі');
         }
 
         async function sendMedia(data, type, target = state.activeChat) {
             const cid = [state.user.nick, target].sort().join('_');
             const msg = { sender: state.user.nick, text: data, type: type, time: Date.now(), read: false };
             await DB.ref('kolo_msgs/'+cid).push(msg);
-            const label = type === 'circle' ? '🎥 Кружечок' : '🎤 Голосове';
+            const label = type === 'circle' ? '🎥 Кружечок' : (type === 'image' ? '🖼 Фото' : '🎤 Голосове');
             DB.ref(`kolo_chats/${state.user.nick}/${target}`).set({ last: label, time: Date.now() });
             DB.ref(`kolo_chats/${target}/${state.user.nick}`).set({ last: label, time: Date.now() });
         }
@@ -616,8 +626,8 @@
             state.selectedMsgType = type;
             const menu = document.getElementById('msg-context-menu');
             menu.style.display = 'block';
-            menu.style.left = Math.min(e.pageX, window.innerWidth - 150) + 'px';
-            menu.style.top = Math.min(e.pageY, window.innerHeight - 150) + 'px';
+            menu.style.left = Math.min(e.pageX, window.innerWidth - 180) + 'px';
+            menu.style.top = Math.min(e.pageY, window.innerHeight - 200) + 'px';
         }
 
         async function openForward() {
@@ -649,7 +659,7 @@
             await DB.ref(`kolo_msgs/${cid}/${state.selectedMsgId}`).remove();
             hideMenu();
         }
-        function copyMsgText() { if(state.selectedMsgText) navigator.clipboard.writeText(state.selectedMsgText); hideMenu(); }
+        function copyMsgText() { if(state.selectedMsgText && state.selectedMsgType === 'text') navigator.clipboard.writeText(state.selectedMsgText); hideMenu(); }
 
         function initListeners() {
             DB.ref('kolo_stories_db').on('value', snap => {
@@ -729,6 +739,7 @@
         }
 
         async function deleteFullChat() {
+            if(!confirm('Видалити весь чат?')) return;
             const cid = [state.user.nick, state.activeChat].sort().join('_');
             await DB.ref(`kolo_msgs/${cid}`).remove();
         }
@@ -749,7 +760,7 @@
                 document.getElementById('menu-avatar').src = state.user.avatar;
                 document.getElementById('menu-nick').innerText = "@" + state.user.nick;
                 initListeners();
-                setInterval(() => DB.ref(`kolo_users/${state.user.nick}`).update({ lastSeen: Date.now() }), 30000);
+                setInterval(() => { if(state.user) DB.ref(`kolo_users/${state.user.nick}`).update({ lastSeen: Date.now() }) }, 30000);
             }
         };
 
