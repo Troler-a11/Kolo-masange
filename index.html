@@ -14,7 +14,7 @@
 
     <style>
         :root { --accent: #00e5ff; --bg: #000; --surface: #111; --bubble-me: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%); --green-tick: #00ff88; }
-        body { font-family: 'Montserrat', sans-serif; background: var(--bg); color: white; margin: 0; overflow-y: auto; height: 100vh; }
+        body { font-family: 'Montserrat', sans-serif; background: var(--bg); color: white; margin: 0; overflow: hidden; height: 100vh; }
         
         .side-menu { transform: translateX(-100%); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000; }
         .side-menu.active { transform: translateX(0); }
@@ -22,7 +22,7 @@
         .profile-banner { width: 100%; height: 180px; object-fit: cover; border-radius: 0 0 35px 35px; background: #222; }
         .profile-avatar { width: 120px; height: 120px; border-radius: 50%; border: 5px solid var(--bg); margin-top: -60px; object-fit: cover; background: #333; }
         
-        .chat-bubble { max-width: 80%; padding: 12px 18px; border-radius: 22px; font-size: 14px; font-weight: 600; margin-bottom: 8px; animation: slideUp 0.3s ease; cursor: pointer; position: relative; word-wrap: break-word; }
+        .chat-bubble { max-width: 80%; padding: 12px 18px; border-radius: 22px; font-size: 14px; font-weight: 600; margin-bottom: 4px; animation: slideUp 0.3s ease; cursor: pointer; position: relative; word-wrap: break-word; }
         .me { background: var(--bubble-me); color: black; align-self: flex-end; border-bottom-right-radius: 4px; }
         .them { background: #222; color: white; align-self: flex-start; border-bottom-left-radius: 4px; }
 
@@ -50,7 +50,7 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        .custom-menu { position: fixed; background: #222; border-radius: 15px; padding: 8px; z-index: 6000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #444; }
+        .custom-menu { position: fixed; background: #222; border-radius: 15px; padding: 8px; z-index: 5000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #444; }
         .custom-menu button { display: block; width: 100%; text-align: left; padding: 10px 20px; color: white; font-weight: bold; font-size: 14px; }
         .custom-menu button.del { color: #ff4444; }
 
@@ -70,6 +70,8 @@
         .tick-green { color: var(--green-tick); text-shadow: 0 0 5px rgba(0,255,136,0.3); }
         
         .unread-badge { background: var(--accent); color: black; font-size: 10px; padding: 2px 6px; border-radius: 10px; min-width: 20px; text-align: center; font-weight: 900; }
+        .msg-date-tag { font-size: 8px; font-weight: 800; color: #444; text-transform: uppercase; margin-bottom: 2px; }
+        .me .msg-date-tag { text-align: right; color: rgba(0,0,0,0.4); }
     </style>
 </head>
 <body>
@@ -117,6 +119,7 @@
     <div id="msg-context-menu" class="custom-menu">
         <button onclick="copyMsgText()">Скопіювати</button>
         <button onclick="openForward()">Переслати</button>
+        <button id="pin-btn-ctx" onclick="togglePinMsg()">Закріпити</button>
         <button class="del" onclick="handleDeleteMsg()">Видалити для всіх</button>
     </div>
 
@@ -145,7 +148,7 @@
         <div class="absolute inset-0 bg-black/70 backdrop-blur-md" onclick="toggleMenu()"></div>
         <div class="relative w-4/5 h-full bg-[#0a0a0a] p-8 border-r border-white/5 flex flex-col">
             <div class="flex flex-col gap-4 mb-10 pb-6 border-b border-white/5" onclick="viewMyProfile(); toggleMenu()">
-                <img id="menu-avatar" class="w-16 h-16 rounded-full object-cover border-2 border-cyan-400">
+                <img id="menu-avatar" class="w-16 h-16 rounded-cover border-2 border-cyan-400">
                 <div><h3 id="menu-name" class="font-black italic"></h3><p id="menu-nick" class="text-cyan-400 text-xs"></p></div>
             </div>
             <nav class="space-y-6 flex-1">
@@ -197,7 +200,10 @@
             <button onclick="closeChat()" class="text-cyan-400 text-2xl">←</button>
             <img id="chat-head-av" class="w-10 h-10 rounded-full object-cover" onclick="viewForeignProfile(state.activeChat)">
             <div class="flex-1" onclick="viewForeignProfile(state.activeChat)"><h3 id="chat-head-name" class="font-black text-sm"></h3><p id="chat-status" class="text-[9px] text-cyan-500">OFFLINE</p></div>
-            <button onclick="deleteFullChat()" class="text-red-500 text-[10px] font-black">CLEAR</button>
+            <div class="flex flex-col items-end gap-1">
+                 <button onclick="deleteFullChat()" class="text-red-500 text-[8px] font-black">CLEAR ALL</button>
+                 <button onclick="cleanOldMessages()" class="text-red-600 text-[8px] font-black border border-red-900 px-1 rounded">AUTO CLEAN</button>
+            </div>
         </header>
         <div id="messages-area" class="flex-1 overflow-y-auto p-6 flex flex-col no-scrollbar" onclick="hideMenu()"></div>
         <footer class="p-4 bg-black border-t border-white/5 flex flex-col gap-3">
@@ -212,7 +218,7 @@
                     <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                 </button>
                 <input type="file" id="chat-file" class="hidden" accept="image/*,video/*" onchange="uploadChatFile(this)">
-                <input type="text" id="msg-input" placeholder="Повідомлення..." class="flex-1 input-field" oninput="debouncedStatusUpdate()">
+                <input type="text" id="msg-input" placeholder="Повідомлення..." class="flex-1 input-field" oninput="updateStatus('пише...')">
                 <button onclick="sendMsg()" class="w-14 h-12 bg-cyan-400 rounded-2xl flex items-center justify-center text-black font-black">
                      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
                 </button>
@@ -288,16 +294,25 @@
             selectedMsgId: null,
             selectedMsgText: null,
             selectedMsgType: null,
+            selectedMsgPinned: false,
             storyQueue: [],
             currentStoryIndex: 0,
-            storyTimer: null,
-            statusDebounceTimer: null
+            storyTimer: null
         };
 
         function calculateAge(birthday) {
             if(!birthday) return "0 років";
             const diff = Date.now() - new Date(birthday).getTime();
             return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25)) + " років";
+        }
+
+        function formatMsgDate(ts) {
+            const d = new Date(ts);
+            const now = new Date();
+            const timeStr = d.getHours().toString().padStart(2,'0') + ":" + d.getMinutes().toString().padStart(2,'0');
+            if(d.toDateString() === now.toDateString()) return timeStr;
+            const months = ["січ","лют","бер","квіт","трав","черв","лип","серп","вер","жовт","лист","груд"];
+            return `${timeStr}  ${d.getDate()} ${months[d.getMonth()]}`;
         }
 
         function formatTimeAgo(timestamp) {
@@ -341,11 +356,7 @@
         async function verifySession() {
             if(document.getElementById('otp-input').value === state.otp) {
                 if(!state.temp) {
-                    const nick = document.getElementById('reg-nick').value.replace('@','').trim().toLowerCase();
-                    // ПЕРЕВІРКА НА ЗАЙНЯТИЙ НІК (БЕЗПЕКА)
-                    const checkNick = await DB.ref('kolo_users/' + nick).once('value');
-                    if(checkNick.exists()) { alert('Цей нік вже зайнято!'); return; }
-
+                    const nick = document.getElementById('reg-nick').value.replace('@','').trim();
                     let rawName = document.getElementById('reg-name').value;
                     const cleanName = validateAndShortenName(rawName);
                     
@@ -358,13 +369,8 @@
             }
         }
 
-        function debouncedStatusUpdate() {
-            clearTimeout(state.statusDebounceTimer);
-            state.statusDebounceTimer = setTimeout(() => updateStatus('пише...'), 500);
-        }
-
         function updateStatus(text) {
-            if(!state.activeChat || !state.user) return;
+            if(!state.activeChat) return;
             DB.ref(`kolo_status/${state.user.nick}`).set({ target: state.activeChat, text: text, time: Date.now() });
         }
 
@@ -376,7 +382,6 @@
             
             const cid = [state.user.nick, nick].sort().join('_');
             
-            // ОЧИЩЕННЯ ПОПЕРЕДНІХ СЛУХАЧІВ (ВИПРАВЛЕНО ВИТІК ПАМ'ЯТІ)
             DB.ref(`kolo_status/${nick}`).off();
             DB.ref('kolo_msgs/'+cid).off();
 
@@ -394,8 +399,7 @@
 
             DB.ref('kolo_msgs/'+cid).on('value', s => {
                 const area = document.getElementById('messages-area'); 
-                const fragment = document.createDocumentFragment(); // Оптімізація DOM
-                
+                area.innerHTML = '';
                 if(s.val()) Object.entries(s.val()).forEach(([id, m]) => {
                     if(m.sender !== state.user.nick && !m.read) DB.ref(`kolo_msgs/${cid}/${id}/read`).set(true);
                     
@@ -417,22 +421,25 @@
                             : `<span class="msg-status-tick tick-gray">✓</span>`;
                     }
                     
-                    const div = document.createElement('div');
-                    div.className = `${cClass} ${bClass} ${sClass}`;
-                    div.innerHTML = content + tickHtml;
+                    const pinIcon = m.pinned ? `<span class="text-[10px] ml-1">📌</span>` : '';
+                    const dateTag = `<div class="msg-date-tag">${formatMsgDate(m.time)}</div>`;
                     
-                    div.oncontextmenu = (e) => showContextMenu(e, id, m.text, m.type);
-                    div.onclick = () => {
+                    const div = document.createElement('div');
+                    div.className = `${cClass} flex flex-col`;
+                    div.style.maxWidth = "80%";
+                    div.innerHTML = `${dateTag}<div class="${bClass} ${sClass} w-full">${content}${tickHtml}${pinIcon}</div>`;
+                    
+                    const bubble = div.querySelector(`.${bClass}`);
+                    bubble.oncontextmenu = (e) => showContextMenu(e, id, m.text, m.type, m.pinned);
+                    bubble.onclick = () => {
                         if(m.type === 'circle') {
-                            div.classList.toggle('fullscreen');
-                            const v = div.querySelector('video');
-                            if(div.classList.contains('fullscreen')) { v.muted = false; v.play(); } else { v.muted = true; }
-                        } else if(m.type === 'audio') { div.querySelector('audio').play(); }
+                            bubble.classList.toggle('fullscreen');
+                            const v = bubble.querySelector('video');
+                            if(bubble.classList.contains('fullscreen')) { v.muted = false; v.play(); } else { v.muted = true; }
+                        } else if(m.type === 'audio') { bubble.querySelector('audio').play(); }
                     };
-                    fragment.appendChild(div);
+                    area.appendChild(div);
                 });
-                area.innerHTML = ''; 
-                area.appendChild(fragment);
                 area.scrollTop = area.scrollHeight;
             });
         }
@@ -448,7 +455,7 @@
             updateStatus(type === 'video' ? 'записує кружечок...' : 'записує голос...');
 
             try {
-                const constraints = type === 'video' ? { video: { width: 320, height: 320 }, audio: true } : { audio: true };
+                const constraints = type === 'video' ? { video: { width: 480, height: 480 }, audio: true } : { audio: true };
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 
                 if(type === 'video') { preview.srcObject = stream; preview.classList.remove('hidden'); visual.classList.add('hidden'); }
@@ -465,7 +472,9 @@
                     sec++;
                     let s = sec.toString().padStart(2, '0');
                     document.getElementById('rec-timer').innerText = `00:${s}`;
-                    if(sec >= 25) stopRecording(true);
+                    if(sec >= 25) {
+                        stopRecording(true);
+                    }
                 }, 1000);
             } catch(e) { alert("Доступ заборонено"); }
         }
@@ -483,7 +492,6 @@
                     reader.onloadend = () => sendMedia(reader.result, type);
                     reader.readAsDataURL(blob);
                 }
-                // ФІКС: ЗАКРИВАЄМО ВСІ ТРЕКИ СТРІМУ
                 state.mediaRecorder.stream.getTracks().forEach(t => t.stop());
                 updateStatus('в мережі');
             };
@@ -494,7 +502,6 @@
         async function uploadStory(input) {
             const file = input.files[0];
             if(!file) return;
-            if(file.size > 5242880) { alert('Файл завеликий! (max 5MB)'); return; }
             const reader = new FileReader();
             reader.onload = async () => {
                 const id = Date.now();
@@ -507,7 +514,6 @@
         }
 
         function renderProfile(u) {
-            if(!u) return;
             document.getElementById('p-avatar').src = u.avatar || "";
             document.getElementById('p-banner').src = u.banner || "";
             document.getElementById('p-name-input').value = u.name;
@@ -602,32 +608,51 @@
             const i = document.getElementById('msg-input'); 
             if(!i.value.trim() || !state.activeChat) return;
             const cid = [state.user.nick, state.activeChat].sort().join('_');
-            const msg = { sender: state.user.nick, text: i.value, type: 'text', time: Date.now(), read: false };
+            const msg = { sender: state.user.nick, text: i.value, type: 'text', time: Date.now(), read: false, pinned: false };
             DB.ref('kolo_msgs/'+cid).push(msg);
             DB.ref(`kolo_chats/${state.user.nick}/${state.activeChat}`).set({ last: i.value, time: Date.now() });
             DB.ref(`kolo_chats/${state.activeChat}/${state.user.nick}`).set({ last: i.value, time: Date.now() });
             i.value = '';
-            updateStatus('в мережі');
         }
 
         async function sendMedia(data, type, target = state.activeChat) {
             const cid = [state.user.nick, target].sort().join('_');
-            const msg = { sender: state.user.nick, text: data, type: type, time: Date.now(), read: false };
+            const msg = { sender: state.user.nick, text: data, type: type, time: Date.now(), read: false, pinned: false };
             await DB.ref('kolo_msgs/'+cid).push(msg);
-            const label = type === 'circle' ? '🎥 Кружечок' : (type === 'image' ? '🖼 Фото' : '🎤 Голосове');
+            const label = type === 'circle' ? '🎥 Кружечок' : '🎤 Голосове';
             DB.ref(`kolo_chats/${state.user.nick}/${target}`).set({ last: label, time: Date.now() });
             DB.ref(`kolo_chats/${target}/${state.user.nick}`).set({ last: label, time: Date.now() });
         }
 
-        function showContextMenu(e, id, text, type) {
+        function showContextMenu(e, id, text, type, pinned) {
             e.preventDefault();
             state.selectedMsgId = id;
             state.selectedMsgText = text;
             state.selectedMsgType = type;
+            state.selectedMsgPinned = pinned;
             const menu = document.getElementById('msg-context-menu');
+            document.getElementById('pin-btn-ctx').innerText = pinned ? "Відкріпити" : "Закріпити";
             menu.style.display = 'block';
-            menu.style.left = Math.min(e.pageX, window.innerWidth - 180) + 'px';
-            menu.style.top = Math.min(e.pageY, window.innerHeight - 200) + 'px';
+            menu.style.left = Math.min(e.pageX, window.innerWidth - 150) + 'px';
+            menu.style.top = Math.min(e.pageY, window.innerHeight - 150) + 'px';
+        }
+
+        async function togglePinMsg() {
+            const cid = [state.user.nick, state.activeChat].sort().join('_');
+            await DB.ref(`kolo_msgs/${cid}/${state.selectedMsgId}`).update({ pinned: !state.selectedMsgPinned });
+            hideMenu();
+        }
+
+        async function cleanOldMessages() {
+            if(!confirm('Видалити повідомлення старіші за 3 тижні? Закріплені залишаться.')) return;
+            const cid = [state.user.nick, state.activeChat].sort().join('_');
+            const snap = await DB.ref(`kolo_msgs/${cid}`).once('value');
+            const limit = Date.now() - (21 * 24 * 60 * 60 * 1000);
+            if(snap.val()) {
+                Object.entries(snap.val()).forEach(([id, m]) => {
+                    if(m.time < limit && !m.pinned) DB.ref(`kolo_msgs/${cid}/${id}`).remove();
+                });
+            }
         }
 
         async function openForward() {
@@ -659,7 +684,7 @@
             await DB.ref(`kolo_msgs/${cid}/${state.selectedMsgId}`).remove();
             hideMenu();
         }
-        function copyMsgText() { if(state.selectedMsgText && state.selectedMsgType === 'text') navigator.clipboard.writeText(state.selectedMsgText); hideMenu(); }
+        function copyMsgText() { if(state.selectedMsgText) navigator.clipboard.writeText(state.selectedMsgText); hideMenu(); }
 
         function initListeners() {
             DB.ref('kolo_stories_db').on('value', snap => {
@@ -739,7 +764,7 @@
         }
 
         async function deleteFullChat() {
-            if(!confirm('Видалити весь чат?')) return;
+            if(!confirm('Повністю очистити історію листування?')) return;
             const cid = [state.user.nick, state.activeChat].sort().join('_');
             await DB.ref(`kolo_msgs/${cid}`).remove();
         }
@@ -760,7 +785,7 @@
                 document.getElementById('menu-avatar').src = state.user.avatar;
                 document.getElementById('menu-nick').innerText = "@" + state.user.nick;
                 initListeners();
-                setInterval(() => { if(state.user) DB.ref(`kolo_users/${state.user.nick}`).update({ lastSeen: Date.now() }) }, 30000);
+                setInterval(() => DB.ref(`kolo_users/${state.user.nick}`).update({ lastSeen: Date.now() }), 30000);
             }
         };
 
