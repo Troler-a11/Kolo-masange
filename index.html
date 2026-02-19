@@ -22,12 +22,16 @@
         .profile-banner { width: 100%; height: 180px; object-fit: cover; border-radius: 0 0 35px 35px; background: #222; }
         .profile-avatar { width: 120px; height: 120px; border-radius: 50%; border: 5px solid var(--bg); margin-top: -60px; object-fit: cover; background: #333; }
         
-        .chat-bubble { max-width: 80%; padding: 12px 18px; border-radius: 22px; font-size: 14px; font-weight: 600; margin-bottom: 8px; animation: slideUp 0.3s ease; position: relative; }
+        .chat-bubble { max-width: 80%; padding: 12px 18px; border-radius: 22px; font-size: 14px; font-weight: 600; margin-bottom: 8px; animation: slideUp 0.3s ease; cursor: pointer; }
         .me { background: var(--bubble-me); color: black; align-self: flex-end; border-bottom-right-radius: 4px; }
         .them { background: #222; color: white; align-self: flex-start; border-bottom-left-radius: 4px; }
 
-        .video-note { width: 200px; height: 200px; border-radius: 50%; overflow: hidden; border: 3px solid var(--accent); background: #000; flex-shrink: 0; margin-bottom: 10px; position: relative; }
+        .video-note { width: 220px; height: 220px; border-radius: 50%; overflow: hidden; border: 3px solid var(--accent); background: #000; flex-shrink: 0; margin-bottom: 10px; position: relative; cursor: pointer; box-shadow: 0 0 20px rgba(0,229,255,0.2); }
         .video-note video { width: 100%; height: 100%; object-fit: cover; }
+
+        .record-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-blur: 10px; z-index: 3000; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .record-circle { width: 280px; height: 280px; border-radius: 50%; border: 5px solid var(--accent); overflow: hidden; position: relative; margin-bottom: 30px; box-shadow: 0 0 50px var(--accent); }
+        .record-circle video { width: 100%; height: 100%; object-fit: cover; }
 
         .story-circle { width: 65px; height: 65px; border-radius: 50%; padding: 3px; border: 2px solid var(--accent); flex-shrink: 0; }
         .story-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid black; }
@@ -39,13 +43,31 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        .msg-del-btn { position: absolute; top: -10px; right: -10px; background: red; color: white; font-size: 8px; padding: 4px; border-radius: 50%; display: none; }
-        .chat-bubble:hover .msg-del-btn, .video-note:hover .msg-del-btn { display: block; }
-        
-        .search-res-card { background: #111; padding: 15px; border-radius: 20px; display: flex; align-items: center; gap: 15px; margin-bottom: 10px; }
+        .custom-menu { position: fixed; background: #222; border-radius: 15px; padding: 8px; z-index: 5000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #444; }
+        .custom-menu button { display: block; width: 100%; text-align: left; padding: 10px 20px; color: white; font-weight: bold; font-size: 14px; }
+        .custom-menu button.del { color: #ff4444; }
     </style>
 </head>
 <body>
+
+    <div id="record-ui" class="record-overlay">
+        <div class="record-circle">
+            <video id="record-preview" autoplay muted playsinline></video>
+        </div>
+        <div class="text-center">
+            <p id="rec-timer" class="text-2xl font-black mb-4">00:00</p>
+            <div class="flex gap-6">
+                <button onclick="stopRecording(false)" class="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center text-2xl">✕</button>
+                <button onclick="stopRecording(true)" class="w-20 h-20 bg-cyan-400 rounded-full flex items-center justify-center text-black text-3xl">➤</button>
+            </div>
+            <p class="mt-6 text-gray-400 font-bold uppercase tracking-widest text-xs">Запис відео-повідомлення</p>
+        </div>
+    </div>
+
+    <div id="msg-context-menu" class="custom-menu">
+        <button onclick="copyMsgText()">Скопіювати</button>
+        <button class="del" onclick="handleDeleteMsg()">Видалити для всіх</button>
+    </div>
 
     <div id="auth-screen" class="fixed inset-0 z-[2000] bg-black p-8 flex flex-col justify-center overflow-y-auto">
         <div id="auth-init" class="space-y-6 max-w-md mx-auto w-full text-center">
@@ -128,18 +150,17 @@
             <button onclick="closeChat()" class="text-cyan-400 text-2xl">←</button>
             <img id="chat-head-av" class="w-10 h-10 rounded-full object-cover" onclick="viewForeignProfile(state.activeChat)">
             <div class="flex-1" onclick="viewForeignProfile(state.activeChat)"><h3 id="chat-head-name" class="font-black text-sm"></h3><p class="text-[9px] text-cyan-500">ONLINE</p></div>
-            <button onclick="deleteFullChat()" class="text-red-500 text-[10px] font-black">DELETE</button>
+            <button onclick="deleteFullChat()" class="text-red-500 text-[10px] font-black">CLEAR</button>
         </header>
-        <div id="messages-area" class="flex-1 overflow-y-auto p-6 flex flex-col no-scrollbar"></div>
+        <div id="messages-area" class="flex-1 overflow-y-auto p-6 flex flex-col no-scrollbar" onclick="hideMenu()"></div>
         <footer class="p-4 bg-black border-t border-white/5 flex flex-col gap-3">
             <div class="flex gap-2 items-center">
-                <button id="rec-btn" onclick="toggleRecord()" class="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center transition-all">🔘</button>
+                <button id="rec-btn" onclick="startRecording()" class="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-2xl">🔘</button>
                 <button onclick="document.getElementById('chat-file').click()" class="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center">📎</button>
                 <input type="file" id="chat-file" class="hidden" accept="image/*,video/*" onchange="uploadChatFile(this)">
                 <input type="text" id="msg-input" placeholder="Повідомлення..." class="flex-1 input-field">
                 <button onclick="sendMsg()" class="w-14 h-12 bg-cyan-400 rounded-2xl flex items-center justify-center text-black font-black">➤</button>
             </div>
-            <video id="preview-video" class="hidden w-32 h-32 rounded-full border-2 border-cyan-400 mx-auto object-cover" autoplay muted></video>
         </footer>
     </div>
 
@@ -189,7 +210,18 @@
         const DB = firebase.database();
         emailjs.init("KErbU8_xE37eaf0qi");
 
-        let state = { user: JSON.parse(localStorage.getItem('kolo_v2')), activeChat: null, isRecording: false, mediaRecorder: null, chunks: [], otp: null, temp: null, viewingNick: null };
+        let state = { 
+            user: JSON.parse(localStorage.getItem('kolo_v2')), 
+            activeChat: null, 
+            isRecording: false, 
+            mediaRecorder: null, 
+            chunks: [], 
+            otp: null, 
+            temp: null, 
+            viewingNick: null,
+            timerInterval: null,
+            selectedMsgId: null
+        };
 
         function calculateAge(birthday) {
             if(!birthday) return "0 років";
@@ -199,7 +231,7 @@
 
         async function checkUserAndSendOTP() {
             const phone = document.getElementById('auth-phone').value.trim();
-            if(!phone) return alert("Введіть номер!");
+            if(!phone) return;
             const snap = await DB.ref('kolo_users').once('value');
             let found = null;
             if(snap.val()) { for(let id in snap.val()) if(snap.val()[id].phone === phone) found = snap.val()[id]; }
@@ -214,7 +246,7 @@
                 document.getElementById('auth-init').classList.add('hidden');
                 document.getElementById('reg-details').classList.add('hidden');
                 document.getElementById('otp-view').classList.remove('hidden');
-            }).catch(err => alert("Помилка EmailJS"));
+            });
         }
 
         async function verifySession() {
@@ -227,29 +259,10 @@
                 } else state.user = state.temp;
                 localStorage.setItem('kolo_v2', JSON.stringify(state.user));
                 location.reload();
-            } else alert("Невірний код!");
-        }
-
-        async function searchUsers(val) {
-            const results = document.getElementById('search-results');
-            results.innerHTML = '';
-            if(val.length < 2) return;
-            const snap = await DB.ref('kolo_users').once('value');
-            const users = snap.val();
-            for(let id in users) {
-                if(id.includes(val.toLowerCase()) && id !== state.user.nick) {
-                    const u = users[id];
-                    results.innerHTML += `<div class="search-res-card" onclick="viewForeignProfile('${u.nick}')">
-                        <img src="${u.avatar}" class="w-12 h-12 rounded-full object-cover">
-                        <div class="flex-1">
-                            <h4 class="font-bold">${u.name}</h4>
-                            <p class="text-xs text-cyan-400">@${u.nick}</p>
-                        </div>
-                    </div>`;
-                }
             }
         }
 
+        // CHAT LOGIC
         function openChat(nick, av, name) {
             state.activeChat = nick;
             document.getElementById('chat-window').classList.remove('hidden');
@@ -259,66 +272,88 @@
             DB.ref('kolo_msgs/'+cid).on('value', s => {
                 const area = document.getElementById('messages-area'); area.innerHTML = '';
                 if(s.val()) Object.entries(s.val()).forEach(([id, m]) => {
-                    let content = m.text;
-                    if(m.type === 'circle') content = `<video src="${m.text}" autoplay loop muted playsinline class="w-full h-full object-cover"></video>`;
+                    let content = '';
+                    if(m.type === 'circle') content = `<video src="${m.text}" autoplay loop muted playsinline></video>`;
                     else if(m.type === 'image') content = `<img src="${m.text}" class="rounded-lg max-w-full">`;
                     else if(m.type === 'video') content = `<video src="${m.text}" controls class="rounded-lg max-w-full"></video>`;
                     else content = `<p>${m.text}</p>`;
                     
-                    const bubbleClass = m.type === 'circle' ? 'video-note' : 'chat-bubble';
-                    const sideClass = m.sender === state.user.nick ? 'me' : 'them';
-                    const containerClass = m.sender === state.user.nick ? 'self-end' : 'self-start';
+                    const bClass = m.type === 'circle' ? 'video-note' : 'chat-bubble';
+                    const sClass = m.sender === state.user.nick ? 'me' : 'them';
+                    const cClass = m.sender === state.user.nick ? 'self-end' : 'self-start';
                     
-                    area.innerHTML += `<div class="${containerClass} ${bubbleClass} ${sideClass}">
+                    area.innerHTML += `<div class="${cClass} ${bClass} ${sClass}" onclick="showContextMenu(event, '${id}', '${m.text}')">
                         ${content}
-                        <button class="msg-del-btn" onclick="deleteMsg('${id}')">✕</button>
                     </div>`;
                 });
                 area.scrollTop = area.scrollHeight;
             });
         }
 
-        async function deleteMsg(id) {
-            const cid = [state.user.nick, state.activeChat].sort().join('_');
-            await DB.ref(`kolo_msgs/${cid}/${id}`).remove();
+        // CONTEXT MENU
+        function showContextMenu(e, id, text) {
+            e.stopPropagation();
+            state.selectedMsgId = id;
+            state.selectedMsgText = text;
+            const menu = document.getElementById('msg-context-menu');
+            menu.style.display = 'block';
+            menu.style.left = Math.min(e.pageX, window.innerWidth - 150) + 'px';
+            menu.style.top = Math.min(e.pageY, window.innerHeight - 100) + 'px';
         }
 
-        async function deleteFullChat() {
-            if(!confirm("Видалити всю переписку?")) return;
+        function hideMenu() { document.getElementById('msg-context-menu').style.display = 'none'; }
+
+        async function handleDeleteMsg() {
             const cid = [state.user.nick, state.activeChat].sort().join('_');
-            await DB.ref(`kolo_msgs/${cid}`).remove();
-            await DB.ref(`kolo_chats/${state.user.nick}/${state.activeChat}`).remove();
-            closeChat();
+            await DB.ref(`kolo_msgs/${cid}/${state.selectedMsgId}`).remove();
+            hideMenu();
         }
 
-        async function toggleRecord() {
-            const btn = document.getElementById('rec-btn');
-            const preview = document.getElementById('preview-video');
-            if(!state.isRecording) {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                    preview.srcObject = stream;
-                    preview.classList.remove('hidden');
-                    state.mediaRecorder = new MediaRecorder(stream);
-                    state.chunks = [];
-                    state.mediaRecorder.ondataavailable = e => state.chunks.push(e.data);
-                    state.mediaRecorder.onstop = async () => {
-                        const blob = new Blob(state.chunks, { type: 'video/mp4' });
-                        const reader = new FileReader();
-                        reader.onload = () => sendMedia(reader.result, 'circle');
-                        reader.readAsDataURL(blob);
-                        stream.getTracks().forEach(t => t.stop());
-                        preview.classList.add('hidden');
-                    };
-                    state.mediaRecorder.start();
-                    btn.style.background = "red";
-                    state.isRecording = true;
-                } catch(e) { alert("Камера недоступна"); }
-            } else {
-                state.mediaRecorder.stop();
-                btn.style.background = "rgba(255,255,255,0.05)";
-                state.isRecording = false;
-            }
+        function copyMsgText() {
+            navigator.clipboard.writeText(state.selectedMsgText);
+            hideMenu();
+        }
+
+        // VIDEO CIRCLES (RECORDING)
+        async function startRecording() {
+            const overlay = document.getElementById('record-ui');
+            const preview = document.getElementById('record-preview');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                preview.srcObject = stream;
+                overlay.style.display = 'flex';
+                state.mediaRecorder = new MediaRecorder(stream);
+                state.chunks = [];
+                state.mediaRecorder.ondataavailable = e => state.chunks.push(e.data);
+                state.mediaRecorder.start();
+                state.isRecording = true;
+                
+                let sec = 0;
+                state.timerInterval = setInterval(() => {
+                    sec++;
+                    let m = Math.floor(sec/60).toString().padStart(2, '0');
+                    let s = (sec%60).toString().padStart(2, '0');
+                    document.getElementById('rec-timer').innerText = `${m}:${s}`;
+                    if(sec >= 60) stopRecording(true);
+                }, 1000);
+            } catch(e) { alert("Помилка доступу до камери"); }
+        }
+
+        function stopRecording(send) {
+            clearInterval(state.timerInterval);
+            document.getElementById('rec-timer').innerText = "00:00";
+            state.mediaRecorder.onstop = async () => {
+                if(send) {
+                    const blob = new Blob(state.chunks, { type: 'video/mp4' });
+                    const reader = new FileReader();
+                    reader.onload = () => sendMedia(reader.result, 'circle');
+                    reader.readAsDataURL(blob);
+                }
+                state.mediaRecorder.stream.getTracks().forEach(t => t.stop());
+            };
+            state.mediaRecorder.stop();
+            document.getElementById('record-ui').style.display = 'none';
+            state.isRecording = false;
         }
 
         function sendMsg() {
@@ -341,48 +376,32 @@
             DB.ref(`kolo_chats/${state.activeChat}/${state.user.nick}`).set({ last: label, time: Date.now() });
         }
 
+        // OTHER UTILS
+        async function searchUsers(val) {
+            const results = document.getElementById('search-results');
+            results.innerHTML = ''; if(val.length < 2) return;
+            const snap = await DB.ref('kolo_users').once('value');
+            for(let id in snap.val()) {
+                if(id.includes(val.toLowerCase()) && id !== state.user.nick) {
+                    const u = snap.val()[id];
+                    results.innerHTML += `<div class="p-4 bg-[#111] rounded-2xl flex items-center gap-4" onclick="viewForeignProfile('${u.nick}')">
+                        <img src="${u.avatar}" class="w-12 h-12 rounded-full object-cover">
+                        <div><h4 class="font-bold">${u.name}</h4><p class="text-xs text-cyan-400">@${u.nick}</p></div>
+                    </div>`;
+                }
+            }
+        }
+
         function uploadChatFile(input) {
             if(!input.files[0]) return;
-            const file = input.files[0];
-            const type = file.type.startsWith('image') ? 'image' : 'video';
             const reader = new FileReader();
-            reader.onload = () => sendMedia(reader.result, type);
-            reader.readAsDataURL(file);
-        }
-
-        function viewMyProfile() {
-            togglePage('profile', true);
-            state.viewingNick = state.user.nick;
-            document.getElementById('p-edit-banner').classList.remove('hidden');
-            document.getElementById('p-edit-avatar').classList.remove('hidden');
-            document.getElementById('p-name-input').readOnly = false;
-            document.getElementById('p-bio-input').readOnly = false;
-            document.getElementById('p-bday-input').readOnly = false;
-            document.getElementById('p-friend-status').classList.add('hidden');
-            renderProfile(state.user);
-        }
-
-        async function viewForeignProfile(nick) {
-            togglePage('profile', true);
-            toggleSearch(false);
-            const snap = await DB.ref('kolo_users/' + nick).once('value');
-            const u = snap.val();
-            state.viewingNick = nick;
-            document.getElementById('p-edit-banner').classList.add('hidden');
-            document.getElementById('p-edit-avatar').classList.add('hidden');
-            document.getElementById('p-name-input').readOnly = true;
-            document.getElementById('p-bio-input').readOnly = true;
-            document.getElementById('p-bday-input').readOnly = true;
-            document.getElementById('p-friend-status').classList.remove('hidden');
-            
-            const isFriend = state.user.friends && state.user.friends[nick];
-            document.getElementById('btn-friend').innerText = isFriend ? "ВИДАЛИТИ З ДРУЗІВ" : "СТАТИ ДРУЗЯМИ";
-            renderProfile(u);
+            reader.onload = () => sendMedia(reader.result, input.files[0].type.startsWith('image') ? 'image' : 'video');
+            reader.readAsDataURL(input.files[0]);
         }
 
         function renderProfile(u) {
-            document.getElementById('p-avatar').src = u.avatar || "https://api.dicebear.com/7.x/pixel-art/svg?seed=kolo";
-            document.getElementById('p-banner').src = u.banner || "https://images.unsplash.com/photo-1557683316-973673baf926";
+            document.getElementById('p-avatar').src = u.avatar || "";
+            document.getElementById('p-banner').src = u.banner || "";
             document.getElementById('p-name-input').value = u.name;
             document.getElementById('p-phone').innerText = u.phone;
             document.getElementById('p-nick-full').innerText = "@" + u.nick;
@@ -391,29 +410,13 @@
             document.getElementById('p-age-calc').innerText = "(" + calculateAge(u.bday) + ")";
         }
 
-        function startChatFromProfile() {
-            if(state.viewingNick === state.user.nick) return;
-            const name = document.getElementById('p-name-input').value;
-            const av = document.getElementById('p-avatar').src;
-            togglePage('profile', false);
-            openChat(state.viewingNick, av, name);
-        }
-
         async function toggleFriend() {
-            const target = state.viewingNick;
-            const isFriend = state.user.friends && state.user.friends[target];
-            if(isFriend) {
-                await DB.ref(`kolo_users/${state.user.nick}/friends/${target}`).remove();
-                await DB.ref(`kolo_users/${target}/friends/${state.user.nick}`).remove();
-                delete state.user.friends[target];
-            } else {
-                await DB.ref(`kolo_users/${state.user.nick}/friends/${target}`).set(true);
-                await DB.ref(`kolo_users/${target}/friends/${state.user.nick}`).set(true);
-                if(!state.user.friends) state.user.friends = {};
-                state.user.friends[target] = true;
-            }
+            const t = state.viewingNick;
+            const isF = state.user.friends && state.user.friends[t];
+            if(isF) { await DB.ref(`kolo_users/${state.user.nick}/friends/${t}`).remove(); await DB.ref(`kolo_users/${t}/friends/${state.user.nick}`).remove(); delete state.user.friends[t]; }
+            else { await DB.ref(`kolo_users/${state.user.nick}/friends/${t}`).set(true); await DB.ref(`kolo_users/${t}/friends/${state.user.nick}`).set(true); if(!state.user.friends) state.user.friends = {}; state.user.friends[t] = true; }
             localStorage.setItem('kolo_v2', JSON.stringify(state.user));
-            viewForeignProfile(target);
+            viewForeignProfile(t);
         }
 
         function uploadMedia(input, type) {
@@ -431,9 +434,7 @@
         function uploadStory(input) {
             const reader = new FileReader();
             reader.onload = async () => {
-                const story = { img: reader.result, time: Date.now(), owner: state.user.nick, ownerAv: state.user.avatar };
-                await DB.ref('kolo_stories/' + state.user.nick).set(story);
-                alert("Історія додана!");
+                await DB.ref('kolo_stories/' + state.user.nick).set({ img: reader.result, time: Date.now(), owner: state.user.nick, ownerAv: state.user.avatar });
             };
             reader.readAsDataURL(input.files[0]);
         }
@@ -443,12 +444,8 @@
                 const list = document.getElementById('stories-list'); list.innerHTML = '';
                 if(!snap.val()) return;
                 Object.values(snap.val()).forEach(s => {
-                    const isExp = (Date.now() - s.time) > 86400000;
-                    if(!isExp && (s.owner === state.user.nick || (state.user.friends && state.user.friends[s.owner]))) {
-                        list.innerHTML += `<div class="flex flex-col items-center gap-1" onclick="alert('Перегляд історії...')">
-                            <div class="story-circle"><img src="${s.ownerAv}" class="story-img"></div>
-                            <span class="text-[9px] font-bold text-gray-400">${s.owner}</span>
-                        </div>`;
+                    if((Date.now() - s.time) < 86400000 && (s.owner === state.user.nick || (state.user.friends && state.user.friends[s.owner]))) {
+                        list.innerHTML += `<div class="flex flex-col items-center gap-1"><div class="story-circle"><img src="${s.ownerAv}" class="story-img"></div><span class="text-[9px] font-bold text-gray-400">${s.owner}</span></div>`;
                     }
                 });
             });
@@ -460,21 +457,29 @@
                 for(let [nick, data] of sorted) {
                     const uSnap = await DB.ref('kolo_users/'+nick).once('value');
                     const u = uSnap.val();
-                    if(u) {
-                        list.innerHTML += `<div onclick="openChat('${u.nick}','${u.avatar}','${u.name}')" class="flex items-center gap-4 p-4 bg-[#111] rounded-[24px] active:scale-95 transition-transform">
-                            <img src="${u.avatar}" class="w-14 h-14 rounded-full object-cover">
-                            <div class="flex-1 font-bold"><h4>${u.name}</h4><p class="text-xs text-gray-500 truncate">${data.last}</p></div>
-                        </div>`;
-                    }
+                    if(u) list.innerHTML += `<div onclick="openChat('${u.nick}','${u.avatar}','${u.name}')" class="flex items-center gap-4 p-4 bg-[#111] rounded-[24px]"><img src="${u.avatar}" class="w-14 h-14 rounded-full object-cover"><div class="flex-1 font-bold"><h4>${u.name}</h4><p class="text-xs text-gray-500 truncate">${data.last}</p></div></div>`;
                 }
             });
         }
 
         function toggleMenu() { document.getElementById('side-menu').classList.toggle('active'); }
-        function toggleSearch(s) { document.getElementById('search-panel').classList.toggle('hidden', !s); if(s) document.getElementById('search-input').focus(); }
+        function toggleSearch(s) { document.getElementById('search-panel').classList.toggle('hidden', !s); }
         function togglePage(p, s) { document.getElementById(p+'-page').classList.toggle('hidden', !s); }
         function closeChat() { document.getElementById('chat-window').classList.add('hidden'); state.activeChat = null; }
         function logout() { localStorage.clear(); location.reload(); }
+        
+        async function deleteFullChat() {
+            const cid = [state.user.nick, state.activeChat].sort().join('_');
+            await DB.ref(`kolo_msgs/${cid}`).remove();
+        }
+
+        function viewMyProfile() { togglePage('profile', true); state.viewingNick = state.user.nick; document.getElementById('p-edit-banner').classList.remove('hidden'); document.getElementById('p-edit-avatar').classList.remove('hidden'); document.getElementById('p-name-input').readOnly = false; document.getElementById('p-bio-input').readOnly = false; document.getElementById('p-bday-input').readOnly = false; document.getElementById('p-friend-status').classList.add('hidden'); renderProfile(state.user); }
+
+        async function viewForeignProfile(nick) { togglePage('profile', true); toggleSearch(false); const snap = await DB.ref('kolo_users/' + nick).once('value'); const u = snap.val(); state.viewingNick = nick; document.getElementById('p-edit-banner').classList.add('hidden'); document.getElementById('p-edit-avatar').classList.add('hidden'); document.getElementById('p-name-input').readOnly = true; document.getElementById('p-bio-input').readOnly = true; document.getElementById('p-bday-input').readOnly = true; document.getElementById('p-friend-status').classList.remove('hidden'); const isFriend = state.user.friends && state.user.friends[nick]; document.getElementById('btn-friend').innerText = isFriend ? "ВИДАЛИТИ" : "ДОДАТИ"; renderProfile(u); }
+
+        function startChatFromProfile() { togglePage('profile', false); openChat(state.viewingNick, document.getElementById('p-avatar').src, document.getElementById('p-name-input').value); }
+
+        window.onclick = hideMenu;
 
         window.onload = () => {
             if(state.user) {
@@ -487,22 +492,9 @@
             }
         };
 
-        document.getElementById('p-name-input').onchange = (e) => {
-            DB.ref('kolo_users/'+state.user.nick).update({name: e.target.value});
-            state.user.name = e.target.value;
-            localStorage.setItem('kolo_v2', JSON.stringify(state.user));
-        };
-        document.getElementById('p-bio-input').onchange = (e) => {
-            DB.ref('kolo_users/'+state.user.nick).update({bio: e.target.value});
-            state.user.bio = e.target.value;
-            localStorage.setItem('kolo_v2', JSON.stringify(state.user));
-        };
-        document.getElementById('p-bday-input').onchange = (e) => {
-            DB.ref('kolo_users/'+state.user.nick).update({bday: e.target.value});
-            state.user.bday = e.target.value;
-            localStorage.setItem('kolo_v2', JSON.stringify(state.user));
-            document.getElementById('p-age-calc').innerText = "(" + calculateAge(e.target.value) + ")";
-        };
+        document.getElementById('p-name-input').onchange = (e) => { DB.ref('kolo_users/'+state.user.nick).update({name: e.target.value}); state.user.name = e.target.value; localStorage.setItem('kolo_v2', JSON.stringify(state.user)); };
+        document.getElementById('p-bio-input').onchange = (e) => { DB.ref('kolo_users/'+state.user.nick).update({bio: e.target.value}); state.user.bio = e.target.value; localStorage.setItem('kolo_v2', JSON.stringify(state.user)); };
+        document.getElementById('p-bday-input').onchange = (e) => { DB.ref('kolo_users/'+state.user.nick).update({bday: e.target.value}); state.user.bday = e.target.value; localStorage.setItem('kolo_v2', JSON.stringify(state.user)); };
     </script>
 </body>
 </html>
