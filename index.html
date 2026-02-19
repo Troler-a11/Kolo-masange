@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KOLO | ULTIMATE</title>
+    <title>KOLO | FULL VERSION</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
@@ -13,260 +13,288 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;900&display=swap" rel="stylesheet">
 
     <style>
-        :root { 
-            --accent: #00e5ff; 
-            --bg: #000000; 
-            --surface: #111111; 
-            --bubble-me: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%);
-        }
+        :root { --accent: #00e5ff; --bg: #000; --surface: #111; --bubble-me: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%); }
         body { font-family: 'Montserrat', sans-serif; background: var(--bg); color: white; margin: 0; overflow: hidden; height: 100vh; }
         
-        /* UI Elements */
-        .kolo-card { background: var(--surface); border: 1px solid #222; border-radius: 28px; }
-        .input-field { background: #1a1a1a; border: 1.5px solid #333; border-radius: 18px; padding: 16px; width: 100%; color: white; outline: none; transition: 0.3s; }
-        .input-field:focus { border-color: var(--accent); box-shadow: 0 0 15px rgba(0, 229, 255, 0.2); }
-        .btn-primary { background: var(--accent); color: black; font-weight: 800; border-radius: 20px; padding: 18px; width: 100%; transition: 0.2s; }
-        .btn-primary:active { transform: scale(0.96); }
-
-        /* Profile & Menu */
         .side-menu { transform: translateX(-100%); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000; }
         .side-menu.active { transform: translateX(0); }
-        .profile-banner { width: 100%; height: 180px; object-fit: cover; border-radius: 0 0 35px 35px; }
-        .profile-avatar { width: 120px; height: 120px; border-radius: 50%; border: 5px solid var(--bg); margin-top: -60px; object-fit: cover; }
         
-        /* Chat logic */
-        .chat-bubble { max-width: 80%; padding: 12px 18px; border-radius: 22px; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+        .profile-banner { width: 100%; height: 180px; object-fit: cover; border-radius: 0 0 35px 35px; background: #222; }
+        .profile-avatar { width: 120px; height: 120px; border-radius: 50%; border: 5px solid var(--bg); margin-top: -60px; object-fit: cover; background: #333; }
+        
+        .chat-bubble { max-width: 80%; padding: 12px 18px; border-radius: 22px; font-size: 14px; font-weight: 600; margin-bottom: 8px; animation: slideUp 0.3s ease; }
         .me { background: var(--bubble-me); color: black; align-self: flex-end; border-bottom-right-radius: 4px; }
         .them { background: #222; color: white; align-self: flex-start; border-bottom-left-radius: 4px; }
 
+        .story-circle { width: 65px; height: 65px; border-radius: 50%; padding: 3px; border: 2px solid var(--accent); flex-shrink: 0; }
+        .story-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid black; }
+
+        .input-field { background: #1a1a1a; border: 1.5px solid #333; border-radius: 18px; padding: 16px; width: 100%; color: white; outline: none; }
+        .btn-primary { background: var(--accent); color: black; font-weight: 800; border-radius: 20px; padding: 18px; width: 100%; }
+
         .hidden { display: none !important; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-ui { animation: slideIn 0.4s ease-out forwards; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <div id="auth-screen" class="fixed inset-0 z-[9999] bg-black p-8 flex flex-col justify-center overflow-y-auto">
-        <div id="auth-init" class="space-y-6 max-w-md mx-auto w-full animate-ui text-center">
+    <div id="auth-screen" class="fixed inset-0 z-[2000] bg-black p-8 flex flex-col justify-center overflow-y-auto">
+        <div id="auth-init" class="space-y-6 max-w-md mx-auto w-full text-center">
             <h1 class="text-5xl font-black italic tracking-tighter mb-10">KOLO<span class="text-cyan-400">.</span></h1>
-            <div class="relative">
-                <input type="tel" id="auth-phone" placeholder="+380 00 000 0000" class="input-field text-lg text-center tracking-wider">
-                <div class="absolute -top-3 left-4 bg-black px-2 text-[10px] text-cyan-400 font-black">MOBILE ID</div>
-            </div>
-            <button onclick="checkUserAndSendOTP()" class="btn-primary">УВІЙТИ</button>
-            <p class="text-[10px] text-gray-600 uppercase font-bold tracking-widest mt-4">Safe & Encrypted</p>
+            <input type="tel" id="auth-phone" placeholder="+380XXXXXXXXX" class="input-field text-center">
+            <button onclick="checkUserAndSendOTP()" class="btn-primary">ПРОДОВЖИТИ</button>
         </div>
 
-        <div id="reg-details" class="hidden space-y-4 max-w-md mx-auto w-full animate-ui">
-            <h2 class="text-2xl font-black text-center mb-6">СТВОРИТИ ПРОФІЛЬ</h2>
-            <input type="text" id="reg-name" placeholder="Твоє ім'я" class="input-field">
+        <div id="reg-details" class="hidden space-y-4 max-w-md mx-auto w-full">
+            <h2 class="text-xl font-black text-center mb-6">РЕЄСТРАЦІЯ</h2>
+            <input type="text" id="reg-name" placeholder="Ім'я" class="input-field">
             <input type="text" id="reg-nick" placeholder="@username" class="input-field">
-            <input type="email" id="reg-email" placeholder="Email (для захисту)" class="input-field">
+            <input type="email" id="reg-email" placeholder="Email для коду" class="input-field">
             <input type="date" id="reg-bday" class="input-field">
-            <button onclick="sendOTP('new')" class="btn-primary">ЗАРЕЄСТРУВАТИСЯ</button>
+            <button onclick="sendOTP('new')" class="btn-primary">ОТРИМАТИ КОД</button>
         </div>
 
-        <div id="otp-view" class="hidden space-y-8 text-center max-w-md mx-auto w-full animate-ui">
-            <h2 class="text-3xl font-black italic">КОД</h2>
-            <p id="otp-info" class="text-gray-500 text-sm"></p>
-            <input type="text" id="otp-input" maxlength="6" class="w-full text-center text-6xl font-black bg-transparent border-b-4 border-cyan-400 py-4 outline-none tracking-[0.4em] text-cyan-400">
+        <div id="otp-view" class="hidden space-y-8 text-center max-w-md mx-auto w-full">
+            <h2 class="text-3xl font-black">ВВЕДІТЬ КОД</h2>
+            <input type="text" id="otp-input" maxlength="6" class="w-full text-center text-6xl font-black bg-transparent border-b-4 border-cyan-400 outline-none text-cyan-400 tracking-widest">
             <button onclick="verifySession()" class="btn-primary">ПІДТВЕРДИТИ</button>
         </div>
     </div>
 
     <div id="side-menu" class="fixed inset-0 side-menu">
-        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="toggleMenu()"></div>
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-md" onclick="toggleMenu()"></div>
         <div class="relative w-4/5 h-full bg-[#0a0a0a] p-8 border-r border-white/5">
-            <div class="flex flex-col gap-4 mb-10 pb-6 border-b border-white/5">
+            <div class="flex flex-col gap-4 mb-10 pb-6 border-b border-white/5" onclick="togglePage('profile', true); toggleMenu()">
                 <img id="menu-avatar" class="w-16 h-16 rounded-full object-cover border-2 border-cyan-400">
-                <div>
-                    <h3 id="menu-name" class="font-black text-xl italic"></h3>
-                    <p id="menu-nick" class="text-cyan-400 text-xs font-bold"></p>
-                </div>
+                <div><h3 id="menu-name" class="font-black italic"></h3><p id="menu-nick" class="text-cyan-400 text-xs"></p></div>
             </div>
-            <nav class="space-y-8">
-                <button onclick="togglePage('profile', true); toggleMenu()" class="flex items-center gap-4 w-full text-left font-bold"><span>👤</span> Мій профіль</button>
-                <button class="flex items-center gap-4 w-full text-left font-bold"><span>⚙️</span> Налаштування</button>
-                <button onclick="logout()" class="flex items-center gap-4 w-full text-left font-bold text-red-500"><span>🚪</span> Вийти</button>
+            <nav class="space-y-6">
+                <button onclick="togglePage('profile', true); toggleMenu()" class="block w-full text-left font-bold">👤 Мій профіль</button>
+                <button onclick="logout()" class="block w-full text-left font-bold text-red-500">🚪 Вийти</button>
             </nav>
         </div>
     </div>
 
-    <div id="app-ui" class="hidden h-full flex flex-col bg-[#050505]">
-        <header class="p-6 flex justify-between items-center border-b border-white/5 bg-black/50 backdrop-blur-xl">
+    <div id="app-ui" class="hidden h-full flex flex-col">
+        <header class="p-6 flex justify-between items-center border-b border-white/5 bg-black/80 backdrop-blur-lg">
             <div class="flex items-center gap-4">
                 <button onclick="toggleMenu()" class="text-2xl">☰</button>
-                <h2 class="text-2xl font-black italic tracking-tighter">KOLO</h2>
+                <h2 class="text-2xl font-black italic">KOLO</h2>
             </div>
-            <img onclick="togglePage('profile', true)" id="header-avatar" class="w-10 h-10 rounded-full border border-white/10 object-cover cursor-pointer">
+            <button onclick="toggleSearch(true)" class="text-xl">🔍</button>
         </header>
 
-        <div id="chats-list" class="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">Recent Chats</h3>
-                <span class="text-cyan-400 text-[10px] font-bold">6 STORIES</span>
+        <div class="flex gap-4 p-4 overflow-x-auto no-scrollbar border-b border-white/5">
+            <div class="flex flex-col items-center gap-1">
+                <div class="story-circle" style="border-color: #333;"><img id="story-my-av" class="story-img"></div>
+                <span class="text-[9px] font-bold text-gray-500">Ваша</span>
             </div>
-            <div onclick="openChat('kaisenj', 'https://api.dicebear.com/7.x/bottts/svg?seed=bot', 'Kaisen Core')" class="flex items-center gap-4 p-4 bg-[#111] rounded-[24px] active:scale-95 transition-all">
-                <img src="https://api.dicebear.com/7.x/bottts/svg?seed=bot" class="w-14 h-14 rounded-full bg-black p-1 border border-cyan-400/30">
-                <div class="flex-1">
-                    <div class="flex justify-between"><h4 class="font-bold">Kaisen Core</h4><span class="text-[9px] text-gray-600 font-bold">21:20</span></div>
-                    <p class="text-xs text-gray-500 truncate mt-1">Привіт! Як налаштування?</p>
+            <div id="stories-list" class="flex gap-4">
                 </div>
-            </div>
         </div>
 
-        <nav class="h-24 bg-black/90 backdrop-blur-2xl border-t border-white/5 flex justify-around items-center px-10">
-            <button class="text-cyan-400 flex flex-col items-center gap-1"><span class="text-2xl">💬</span><span class="text-[8px] font-black uppercase">Chats</span></button>
-            <button class="text-gray-600 flex flex-col items-center gap-1"><span class="text-2xl">👥</span><span class="text-[8px] font-black uppercase">Contacts</span></button>
-            <button onclick="togglePage('profile', true)" class="text-gray-600 flex flex-col items-center gap-1"><span class="text-2xl">👤</span><span class="text-[8px] font-black uppercase">Profile</span></button>
+        <div id="chats-list" class="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
+            </div>
+
+        <button onclick="toggleSearch(true)" class="fixed bottom-28 right-6 w-14 h-14 bg-cyan-400 rounded-full flex items-center justify-center text-black shadow-lg shadow-cyan-400/30">✎</button>
+
+        <nav class="h-24 bg-black/90 border-t border-white/5 flex justify-around items-center px-6">
+            <button class="text-cyan-400 flex flex-col items-center"><span class="text-2xl">💬</span><span class="text-[8px] font-black uppercase">Chats</span></button>
+            <button onclick="togglePage('profile', true)" class="text-gray-600 flex flex-col items-center"><span class="text-2xl">👤</span><span class="text-[8px] font-black uppercase">Profile</span></button>
         </nav>
     </div>
 
-    <div id="profile-page" class="hidden fixed inset-0 z-[1100] bg-black overflow-y-auto no-scrollbar">
-        <button onclick="togglePage('profile', false)" class="fixed top-6 left-6 z-50 w-10 h-10 bg-black/40 rounded-full flex items-center justify-center backdrop-blur-md">←</button>
-        <img id="p-banner" class="profile-banner" src="https://images.unsplash.com/photo-1614850523296-d8c1af93d400">
-        <div class="flex flex-col items-center px-8">
-            <img id="p-avatar" class="profile-avatar">
-            <h2 id="p-name" class="text-3xl font-black italic mt-4"></h2>
-            <p class="text-cyan-400 text-xs font-bold animate-pulse">online</p>
-
-            <div class="grid grid-cols-3 gap-3 w-full mt-10">
-                <div class="p-4 bg-[#111] rounded-[24px] text-center"><span class="block text-xl">📸</span><span class="text-[8px] font-black uppercase text-gray-500">Photo</span></div>
-                <div class="p-4 bg-[#111] rounded-[24px] text-center"><span class="block text-xl">✏️</span><span class="text-[8px] font-black uppercase text-gray-500">Edit</span></div>
-                <div class="p-4 bg-[#111] rounded-[24px] text-center"><span class="block text-xl">⚙️</span><span class="text-[8px] font-black uppercase text-gray-500">Settings</span></div>
-            </div>
-
-            <div class="w-full mt-6 space-y-2">
-                <div class="p-6 bg-[#111] rounded-[28px]">
-                    <p id="p-phone" class="font-bold text-lg"></p>
-                    <p class="text-[9px] text-gray-600 font-black uppercase">Mobile</p>
-                    <p id="p-nick-full" class="font-bold text-cyan-400 mt-4"></p>
-                    <p class="text-[9px] text-gray-600 font-black uppercase">Username</p>
-                    <p id="p-bday-full" class="font-bold mt-4"></p>
-                    <p class="text-[9px] text-gray-600 font-black uppercase">Birthday</p>
-                </div>
-            </div>
+    <div id="search-panel" class="hidden fixed inset-0 z-[1500] bg-black p-6">
+        <div class="flex items-center gap-4 mb-8">
+            <button onclick="toggleSearch(false)" class="text-2xl">←</button>
+            <input type="text" id="search-input" placeholder="Введіть нікнейм..." class="input-field flex-1">
         </div>
+        <div id="search-results" class="space-y-4"></div>
     </div>
 
-    <div id="chat-window" class="hidden fixed inset-0 z-[1200] bg-black flex flex-col">
+    <div id="chat-window" class="hidden fixed inset-0 z-[1600] bg-black flex flex-col">
         <header class="p-6 bg-black border-b border-white/5 flex items-center gap-4">
             <button onclick="closeChat()" class="text-cyan-400 text-2xl">←</button>
             <img id="chat-head-av" class="w-10 h-10 rounded-full object-cover">
-            <div class="flex-1"><h3 id="chat-head-name" class="font-black text-sm"></h3><p class="text-[9px] text-cyan-500 font-bold">ONLINE</p></div>
-            <button onclick="deleteChat()" class="text-[9px] font-black border border-red-500/50 text-red-500 px-3 py-2 rounded-xl">DELETE CHAT</button>
+            <div class="flex-1"><h3 id="chat-head-name" class="font-black text-sm"></h3><p class="text-[9px] text-cyan-500">ONLINE</p></div>
+            <button onclick="deleteChat()" class="text-red-500 text-[10px] font-black">DELETE</button>
         </header>
         <div id="messages-area" class="flex-1 overflow-y-auto p-6 flex flex-col no-scrollbar"></div>
-        <footer class="p-6 bg-black flex gap-3 items-center">
-            <button class="w-12 h-12 bg-[#111] rounded-2xl flex items-center justify-center">📷</button>
-            <input type="text" id="msg-input" placeholder="Повідомлення" class="flex-1 input-field">
+        <footer class="p-6 bg-black border-t border-white/5 flex gap-3">
+            <input type="text" id="msg-input" placeholder="Повідомлення..." class="flex-1 input-field">
             <button onclick="sendMsg()" class="w-14 h-12 bg-cyan-400 rounded-2xl flex items-center justify-center text-black">➤</button>
         </footer>
     </div>
 
+    <div id="profile-page" class="hidden fixed inset-0 z-[1700] bg-black overflow-y-auto no-scrollbar">
+        <button onclick="togglePage('profile', false)" class="fixed top-6 left-6 z-50 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center">←</button>
+        <div class="relative">
+            <img id="p-banner" class="profile-banner">
+            <input type="file" id="file-banner" class="hidden" onchange="uploadMedia(this, 'banner')">
+            <button onclick="document.getElementById('file-banner').click()" class="absolute bottom-4 right-4 bg-black/50 p-2 rounded-full">📷</button>
+        </div>
+        <div class="flex flex-col items-center px-8 pb-20">
+            <div class="relative">
+                <img id="p-avatar" class="profile-avatar">
+                <input type="file" id="file-avatar" class="hidden" onchange="uploadMedia(this, 'avatar')">
+                <button onclick="document.getElementById('file-avatar').click()" class="absolute bottom-2 right-2 bg-cyan-400 p-2 rounded-full text-black text-xs">✎</button>
+            </div>
+            <h2 id="p-name" class="text-3xl font-black italic mt-4"></h2>
+            <div class="w-full mt-10 space-y-4">
+                <div class="p-6 bg-[#111] rounded-[28px] space-y-4">
+                    <div><p id="p-phone" class="font-bold"></p><p class="text-[9px] text-gray-600 font-black">MOBILE</p></div>
+                    <div><p id="p-nick-full" class="font-bold text-cyan-400"></p><p class="text-[9px] text-gray-600 font-black">USERNAME</p></div>
+                    <div><p id="p-bday-full" class="font-bold"></p><p class="text-[9px] text-gray-600 font-black">BIRTHDAY</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        const KOLO_DB_URL = "https://gameshop-ff113-default-rtdb.firebaseio.com/";
-        firebase.initializeApp({ databaseURL: KOLO_DB_URL });
+        const KOLO_CONFIG = { databaseURL: "https://gameshop-ff113-default-rtdb.firebaseio.com/" };
+        firebase.initializeApp(KOLO_CONFIG);
         const DB = firebase.database();
         emailjs.init("KErbU8_xE37eaf0qi");
 
-        let state = { currentUser: JSON.parse(localStorage.getItem('kolo_v2')), temp: null, otp: null, isNew: false, activeChat: null };
+        let state = { user: JSON.parse(localStorage.getItem('kolo_v2')), otp: null, activeChat: null };
 
-        function toggleMenu() { document.getElementById('side-menu').classList.toggle('active'); }
-        function togglePage(p, s) { document.getElementById(p+'-page').classList.toggle('hidden', !s); if(s && p==='profile') loadProfile(); }
-        
+        // AUTH LOGIC
         async function checkUserAndSendOTP() {
-            const phone = document.getElementById('auth-phone').value.trim().replace(/\s/g, '');
-            if(!/^\+380\d{9}$/.test(phone)) return alert("Формат: +380XXXXXXXXX");
+            const phone = document.getElementById('auth-phone').value.trim();
+            if(!phone) return;
             const snap = await DB.ref('kolo_users').once('value');
-            const users = snap.val();
             let found = null;
-            if(users) { for(let id in users) { if(users[id].phone === phone) found = users[id]; } }
-            if(found) { state.isNew = false; state.temp = found; sendOTP('login'); } 
-            else { state.isNew = true; document.getElementById('auth-init').classList.add('hidden'); document.getElementById('reg-details').classList.remove('hidden'); }
+            if(snap.val()) { for(let id in snap.val()) if(snap.val()[id].phone === phone) found = snap.val()[id]; }
+            
+            if(found) { state.temp = found; sendOTP('login'); }
+            else { document.getElementById('auth-init').classList.add('hidden'); document.getElementById('reg-details').classList.remove('hidden'); }
         }
 
-        async function sendOTP(mode) {
-            const email = mode === 'login' ? state.temp.email : document.getElementById('reg-email').value;
+        function sendOTP(m) {
+            const email = m === 'login' ? state.temp.email : document.getElementById('reg-email').value;
             state.otp = Math.floor(100000 + Math.random() * 900000).toString();
-            emailjs.send('service_dbkrnz9', 'template_n90xvc9', { to_email: email, otp_code: `CODE: ${state.otp}` }).then(() => {
+            emailjs.send('service_dbkrnz9', 'template_n90xvc9', { to_email: email, otp_code: state.otp }).then(() => {
                 document.getElementById('auth-init').classList.add('hidden');
                 document.getElementById('reg-details').classList.add('hidden');
                 document.getElementById('otp-view').classList.remove('hidden');
-                document.getElementById('otp-info').innerText = `Код надіслано на ${email}`;
             });
         }
 
         async function verifySession() {
             if(document.getElementById('otp-input').value === state.otp) {
-                if(state.isNew) {
-                    const newUser = {
+                if(!state.temp) {
+                    const u = {
                         name: document.getElementById('reg-name').value,
                         nick: document.getElementById('reg-nick').value.replace('@',''),
                         email: document.getElementById('reg-email').value,
-                        phone: document.getElementById('auth-phone').value.replace(/\s/g, ''),
+                        phone: document.getElementById('auth-phone').value,
                         bday: document.getElementById('reg-bday').value,
                         avatar: "https://api.dicebear.com/7.x/pixel-art/svg?seed=" + Date.now(),
-                        verified: true
+                        banner: ""
                     };
-                    await DB.ref('kolo_users/' + newUser.nick).set(newUser);
-                    state.currentUser = newUser;
-                } else state.currentUser = state.temp;
-                localStorage.setItem('kolo_v2', JSON.stringify(state.currentUser));
+                    await DB.ref('kolo_users/' + u.nick).set(u);
+                    state.user = u;
+                } else state.user = state.temp;
+                localStorage.setItem('kolo_v2', JSON.stringify(state.user));
                 location.reload();
-            } else alert("Помилка!");
+            }
         }
 
-        function calculateAge(b) {
-            const birth = new Date(b); const today = new Date();
-            let age = today.getFullYear() - birth.getFullYear();
-            if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) age--;
-            return age;
-        }
+        // CHAT & SEARCH
+        function toggleSearch(s) { document.getElementById('search-panel').classList.toggle('hidden', !s); }
+        
+        document.getElementById('search-input').oninput = async (e) => {
+            const val = e.target.value.toLowerCase().replace('@','');
+            if(val.length < 2) return;
+            const snap = await DB.ref('kolo_users').once('value');
+            const res = document.getElementById('search-results'); res.innerHTML = '';
+            for(let id in snap.val()) {
+                const u = snap.val()[id];
+                if(u.nick.includes(val) && u.nick !== state.user.nick) {
+                    res.innerHTML += `<div onclick="startChat('${u.nick}','${u.avatar}','${u.name}')" class="flex gap-4 items-center p-4 bg-[#111] rounded-2xl">
+                        <img src="${u.avatar}" class="w-10 h-10 rounded-full">${u.name} (@${u.nick})</div>`;
+                }
+            }
+        };
 
-        function loadProfile() {
-            const u = state.currentUser;
-            document.getElementById('p-avatar').src = u.avatar;
-            document.getElementById('p-name').innerText = u.name;
-            document.getElementById('p-phone').innerText = u.phone;
-            document.getElementById('p-nick-full').innerText = "@" + u.nick;
-            const age = calculateAge(u.bday);
-            document.getElementById('p-bday-full').innerText = `${u.bday} (${age} years old)`;
-        }
+        function startChat(nick, av, name) { toggleSearch(false); openChat(nick, av, name); }
 
         function openChat(nick, av, name) {
             state.activeChat = nick;
             document.getElementById('chat-window').classList.remove('hidden');
             document.getElementById('chat-head-av').src = av;
             document.getElementById('chat-head-name').innerText = name;
-            const cid = [state.currentUser.nick, nick].sort().join('_');
+            const cid = [state.user.nick, nick].sort().join('_');
             DB.ref('kolo_msgs/'+cid).on('value', s => {
                 const area = document.getElementById('messages-area'); area.innerHTML = '';
                 if(s.val()) Object.values(s.val()).forEach(m => {
-                    const isMe = m.sender === state.currentUser.nick;
-                    area.innerHTML += `<div class="chat-bubble ${isMe ? 'me' : 'them'} animate-ui">${m.text}</div>`;
+                    area.innerHTML += `<div class="chat-bubble ${m.sender === state.user.nick ? 'me' : 'them'}">${m.text}</div>`;
                 });
                 area.scrollTop = area.scrollHeight;
             });
         }
+
         function sendMsg() {
             const i = document.getElementById('msg-input'); if(!i.value.trim()) return;
-            const cid = [state.currentUser.nick, state.activeChat].sort().join('_');
-            DB.ref('kolo_msgs/'+cid).push({ sender: state.currentUser.nick, text: i.value });
+            const cid = [state.user.nick, state.activeChat].sort().join('_');
+            DB.ref('kolo_msgs/'+cid).push({ sender: state.user.nick, text: i.value });
+            // Update last message in chat list
+            DB.ref(`kolo_chats/${state.user.nick}/${state.activeChat}`).set({ last: i.value, time: Date.now() });
+            DB.ref(`kolo_chats/${state.activeChat}/${state.user.nick}`).set({ last: i.value, time: Date.now() });
             i.value = '';
         }
-        function closeChat() { document.getElementById('chat-window').classList.add('hidden'); }
+
+        function loadChatList() {
+            DB.ref(`kolo_chats/${state.user.nick}`).on('value', async snap => {
+                const list = document.getElementById('chats-list'); list.innerHTML = '';
+                if(!snap.val()) return;
+                for(let nick in snap.val()) {
+                    const uSnap = await DB.ref('kolo_users/'+nick).once('value');
+                    const u = uSnap.val();
+                    list.innerHTML += `<div onclick="openChat('${u.nick}','${u.avatar}','${u.name}')" class="flex items-center gap-4 p-4 bg-[#111] rounded-[24px]">
+                        <img src="${u.avatar}" class="w-14 h-14 rounded-full">
+                        <div class="flex-1"><h4 class="font-bold">${u.name}</h4><p class="text-xs text-gray-500">${snap.val()[nick].last}</p></div>
+                    </div>`;
+                }
+            });
+        }
+
+        // PROFILE TOOLS
+        function togglePage(p, s) { document.getElementById(p+'-page').classList.toggle('hidden', !s); if(s) loadProfile(); }
+        function loadProfile() {
+            const u = state.user;
+            document.getElementById('p-avatar').src = u.avatar;
+            document.getElementById('p-banner').src = u.banner || "";
+            document.getElementById('p-name').innerText = u.name;
+            document.getElementById('p-phone').innerText = u.phone;
+            document.getElementById('p-nick-full').innerText = "@" + u.nick;
+            document.getElementById('p-bday-full').innerText = u.bday;
+        }
+
+        function uploadMedia(input, type) {
+            const reader = new FileReader();
+            reader.onload = async () => {
+                state.user[type] = reader.result;
+                await DB.ref('kolo_users/' + state.user.nick).update({ [type]: reader.result });
+                localStorage.setItem('kolo_v2', JSON.stringify(state.user));
+                loadProfile();
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+
         function logout() { localStorage.clear(); location.reload(); }
+        function closeChat() { document.getElementById('chat-window').classList.add('hidden'); }
 
         window.onload = () => {
-            if(state.currentUser) {
+            if(state.user) {
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('app-ui').classList.remove('hidden');
-                document.getElementById('header-avatar').src = state.currentUser.avatar;
-                document.getElementById('menu-avatar').src = state.currentUser.avatar;
-                document.getElementById('menu-name').innerText = state.currentUser.name;
-                document.getElementById('menu-nick').innerText = "@" + state.currentUser.nick;
+                document.getElementById('menu-name').innerText = state.user.name;
+                document.getElementById('menu-nick').innerText = "@" + state.user.nick;
+                document.getElementById('menu-avatar').src = state.user.avatar;
+                document.getElementById('story-my-av').src = state.user.avatar;
+                loadChatList();
             }
         };
     </script>
