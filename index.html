@@ -3,146 +3,421 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KOLO ZERO</title>
+    <title>KOLO | FULL VERSION</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; overflow: hidden; height: 100vh; }
-        .bubble { max-width: 80%; padding: 12px; border-radius: 15px; margin: 5px 0; position: relative; }
-        .me { background: #00e5ff; color: #000; align-self: flex-end; }
-        .them { background: #1a1a1a; align-self: flex-start; }
-        .circle { width: 200px; height: 200px; border-radius: 50%; overflow: hidden; border: 3px solid #00e5ff; position: relative; margin: 10px 0; }
-        .circle video { width: 100%; height: 100%; object-fit: cover; }
-        .del { position: absolute; top: -5px; right: -5px; background: red; color: #fff; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; z-index: 5; border: 1px solid #000; }
-        .rec-ui { position: fixed; inset: 0; background: #000; z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; }
-        .btn-send { background: #00e5ff; color: #000; padding: 10px 20px; border-radius: 10px; font-weight: bold; }
+        :root { --accent: #00e5ff; --bg: #000; --surface: #111; --bubble-me: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%); }
+        body { font-family: 'Montserrat', sans-serif; background: var(--bg); color: white; margin: 0; overflow: hidden; height: 100vh; }
+        
+        .side-menu { transform: translateX(-100%); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000; }
+        .side-menu.active { transform: translateX(0); }
+        
+        .profile-banner { width: 100%; height: 180px; object-fit: cover; border-radius: 0 0 35px 35px; background: #222; }
+        .profile-avatar { width: 120px; height: 120px; border-radius: 50%; border: 5px solid var(--bg); margin-top: -60px; object-fit: cover; background: #333; }
+        
+        .chat-bubble { max-width: 80%; padding: 12px 18px; border-radius: 22px; font-size: 14px; font-weight: 600; margin-bottom: 8px; animation: slideUp 0.3s ease; position: relative; }
+        .me { background: var(--bubble-me); color: black; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .them { background: #222; color: white; align-self: flex-start; border-bottom-left-radius: 4px; }
+
+        .video-note { width: 200px; height: 200px; border-radius: 50%; overflow: hidden; border: 3px solid var(--accent); background: #000; flex-shrink: 0; margin-bottom: 10px; position: relative; }
+        .video-note video { width: 100%; height: 100%; object-fit: cover; }
+
+        .story-circle { width: 65px; height: 65px; border-radius: 50%; padding: 3px; border: 2px solid var(--accent); flex-shrink: 0; }
+        .story-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid black; }
+
+        .input-field { background: #1a1a1a; border: 1.5px solid #333; border-radius: 18px; padding: 16px; width: 100%; color: white; outline: none; }
+        .btn-primary { background: var(--accent); color: black; font-weight: 800; border-radius: 20px; padding: 18px; width: 100%; }
+
+        .hidden { display: none !important; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .msg-del-btn { position: absolute; top: -10px; right: -10px; background: red; color: white; font-size: 8px; padding: 4px; border-radius: 50%; display: none; }
+        .chat-bubble:hover .msg-del-btn, .video-note:hover .msg-del-btn { display: block; }
     </style>
 </head>
 <body>
 
-<div id="auth" class="fixed inset-0 bg-black z-[200] flex flex-col items-center justify-center p-6 text-center">
-    <h1 class="text-4xl font-bold mb-8">KOLO ZERO</h1>
-    <input type="text" id="nick" placeholder="Твій нік" class="bg-zinc-900 p-4 rounded-xl w-full mb-4 outline-none">
-    <button onclick="login()" class="btn-send w-full">ПОЧАТИ</button>
-</div>
-
-<div id="app" class="hidden h-full flex flex-col">
-    <div id="list" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
-    <div id="chat" class="hidden fixed inset-0 bg-black flex flex-col z-50">
-        <div class="p-4 border-b border-zinc-800 flex items-center gap-4">
-            <button onclick="closeChat()" class="text-[#00e5ff]">← Назад</button>
-            <b id="chat-name"></b>
+    <div id="auth-screen" class="fixed inset-0 z-[2000] bg-black p-8 flex flex-col justify-center overflow-y-auto">
+        <div id="auth-init" class="space-y-6 max-w-md mx-auto w-full text-center">
+            <h1 class="text-5xl font-black italic tracking-tighter mb-10">KOLO<span class="text-cyan-400">.</span></h1>
+            <input type="tel" id="auth-phone" placeholder="+380XXXXXXXXX" class="input-field text-center">
+            <button onclick="checkUserAndSendOTP()" class="btn-primary">ПРОДОВЖИТИ</button>
         </div>
-        <div id="msgs" class="flex-1 overflow-y-auto p-4 flex flex-col bg-[#050505]"></div>
-        <div class="p-3 border-t border-zinc-800 flex gap-2 items-center">
-            <button onclick="startRec()" class="text-2xl">🔘</button>
-            <input type="text" id="m-in" placeholder="Повідомлення..." class="flex-1 bg-zinc-900 p-3 rounded-xl outline-none">
-            <button onclick="sendMsg()" class="btn-send">ВІДПРАВИТИ</button>
+
+        <div id="reg-details" class="hidden space-y-4 max-w-md mx-auto w-full">
+            <h2 class="text-xl font-black text-center mb-6">РЕЄСТРАЦІЯ</h2>
+            <input type="text" id="reg-name" placeholder="Ім'я" class="input-field">
+            <input type="text" id="reg-nick" placeholder="@username" class="input-field">
+            <input type="email" id="reg-email" placeholder="Email для коду" class="input-field">
+            <input type="date" id="reg-bday" class="input-field">
+            <button onclick="sendOTP('new')" class="btn-primary">ОТРИМАТИ КОД</button>
+        </div>
+
+        <div id="otp-view" class="hidden space-y-8 text-center max-w-md mx-auto w-full">
+            <h2 class="text-3xl font-black">ВВЕДІТЬ КОД</h2>
+            <input type="text" id="otp-input" maxlength="6" class="w-full text-center text-6xl font-black bg-transparent border-b-4 border-cyan-400 outline-none text-cyan-400 tracking-widest">
+            <button onclick="verifySession()" class="btn-primary">ПІДТВЕРДИТИ</button>
         </div>
     </div>
-</div>
 
-<div id="rec-box" class="rec-ui">
-    <video id="v-pre" autoplay muted playsinline class="w-64 h-64 rounded-full border-4 border-[#00e5ff] object-cover mb-8"></video>
-    <div class="flex gap-4">
-        <button onclick="stopRec(false)" class="p-4 text-gray-500">СКАСУВАТИ</button>
-        <button onclick="stopRec(true)" class="btn-send px-8">ГОТОВО</button>
+    <div id="side-menu" class="fixed inset-0 side-menu">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-md" onclick="toggleMenu()"></div>
+        <div class="relative w-4/5 h-full bg-[#0a0a0a] p-8 border-r border-white/5 flex flex-col">
+            <div class="flex flex-col gap-4 mb-10 pb-6 border-b border-white/5" onclick="togglePage('profile', true); toggleMenu()">
+                <img id="menu-avatar" class="w-16 h-16 rounded-full object-cover border-2 border-cyan-400">
+                <div><h3 id="menu-name" class="font-black italic"></h3><p id="menu-nick" class="text-cyan-400 text-xs"></p></div>
+            </div>
+            <nav class="space-y-6 flex-1">
+                <button onclick="viewMyProfile(); toggleMenu()" class="block w-full text-left font-bold">👤 Мій профіль</button>
+                <button onclick="document.getElementById('file-story').click(); toggleMenu()" class="block w-full text-left font-bold">📸 Додати історію</button>
+            </nav>
+            <div class="space-y-4 pt-6 border-t border-white/5">
+                <button onclick="togglePage('settings', true); toggleMenu()" class="block w-full text-left font-bold text-gray-400">⚙️ Налаштування</button>
+                <button onclick="logout()" class="block w-full text-left font-bold text-red-500">🚪 Вийти</button>
+            </div>
+        </div>
     </div>
-</div>
 
-<script>
-    firebase.initializeApp({ databaseURL: "https://gameshop-ff113-default-rtdb.firebaseio.com/" });
-    const db = firebase.database();
-    let user = JSON.parse(localStorage.getItem('kolo_z')), active = null, recorder = null, chunks = [];
+    <div id="app-ui" class="hidden h-full flex flex-col">
+        <header class="p-6 flex justify-between items-center border-b border-white/5 bg-black/80 backdrop-blur-lg">
+            <div class="flex items-center gap-4">
+                <button onclick="toggleMenu()" class="text-2xl">☰</button>
+                <h2 class="text-2xl font-black italic">KOLO</h2>
+            </div>
+            <button onclick="toggleSearch(true)" class="text-xl">🔍</button>
+        </header>
 
-    function login() {
-        const n = document.getElementById('nick').value;
-        if(!n) return;
-        user = { nick: n };
-        localStorage.setItem('kolo_z', JSON.stringify(user));
-        location.reload();
-    }
+        <div class="flex gap-4 p-4 overflow-x-auto no-scrollbar border-b border-white/5">
+            <div class="flex flex-col items-center gap-1" onclick="document.getElementById('file-story').click()">
+                <div class="story-circle" style="border-color: #333; border-style: dashed;"><span class="flex items-center justify-center h-full text-2xl">+</span></div>
+                <span class="text-[9px] font-bold text-gray-500">Ваша</span>
+                <input type="file" id="file-story" class="hidden" accept="image/*" onchange="uploadStory(this)">
+            </div>
+            <div id="stories-list" class="flex gap-4"></div>
+        </div>
 
-    function openChat(n) {
-        active = n;
-        document.getElementById('chat').classList.remove('hidden');
-        document.getElementById('chat-name').innerText = n;
-        const cid = [user.nick, n].sort().join('_');
-        db.ref('msgs/'+cid).on('value', s => {
-            const mBox = document.getElementById('msgs');
-            mBox.innerHTML = '';
-            if(s.val()) Object.entries(s.val()).forEach(([id, m]) => {
-                const isMe = m.s === user.nick;
-                const cls = isMe ? 'me' : 'them';
-                const content = m.t === 'v' ? `<video src="${m.v}" autoplay loop muted playsinline></video>` : m.v;
-                mBox.innerHTML += `<div class="${cls} ${m.t==='v'?'circle':'bubble'} flex flex-col">
-                    <div class="del" onclick="del('${id}')">×</div>
-                    ${content}
-                </div>`;
-            });
-            mBox.scrollTop = mBox.scrollHeight;
-        });
-    }
+        <div id="chats-list" class="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar"></div>
 
-    async function sendMsg() {
-        const i = document.getElementById('m-in');
-        if(!i.value) return;
-        const cid = [user.nick, active].sort().join('_');
-        await db.ref('msgs/'+cid).push({ s: user.nick, v: i.value, t: 'txt' });
-        i.value = '';
-    }
+        <button onclick="toggleSearch(true)" class="fixed bottom-28 right-6 w-14 h-14 bg-cyan-400 rounded-full flex items-center justify-center text-black shadow-lg shadow-cyan-400/30">✎</button>
 
-    async function del(id) {
-        if(confirm("Видалити?")) {
-            const cid = [user.nick, active].sort().join('_');
-            await db.ref(`msgs/${cid}/${id}`).remove();
+        <nav class="h-24 bg-black/90 border-t border-white/5 flex justify-around items-center px-6">
+            <button class="text-cyan-400 flex flex-col items-center"><span class="text-2xl">💬</span><span class="text-[8px] font-black uppercase">Chats</span></button>
+            <button onclick="viewMyProfile()" class="text-gray-600 flex flex-col items-center"><span class="text-2xl">👤</span><span class="text-[8px] font-black uppercase">Profile</span></button>
+        </nav>
+    </div>
+
+    <div id="search-panel" class="hidden fixed inset-0 z-[1500] bg-black p-6">
+        <div class="flex items-center gap-4 mb-8">
+            <button onclick="toggleSearch(false)" class="text-2xl">←</button>
+            <input type="text" id="search-input" placeholder="Введіть нікнейм..." class="input-field flex-1">
+        </div>
+        <div id="search-results" class="space-y-4 overflow-y-auto h-full pb-20 no-scrollbar"></div>
+    </div>
+
+    <div id="chat-window" class="hidden fixed inset-0 z-[1600] bg-black flex flex-col">
+        <header class="p-6 bg-black border-b border-white/5 flex items-center gap-4">
+            <button onclick="closeChat()" class="text-cyan-400 text-2xl">←</button>
+            <img id="chat-head-av" class="w-10 h-10 rounded-full object-cover" onclick="viewForeignProfile(state.activeChat)">
+            <div class="flex-1" onclick="viewForeignProfile(state.activeChat)"><h3 id="chat-head-name" class="font-black text-sm"></h3><p class="text-[9px] text-cyan-500">ONLINE</p></div>
+            <button onclick="deleteFullChat()" class="text-red-500 text-[10px] font-black">DELETE</button>
+        </header>
+        <div id="messages-area" class="flex-1 overflow-y-auto p-6 flex flex-col no-scrollbar"></div>
+        <footer class="p-4 bg-black border-t border-white/5 flex flex-col gap-3">
+            <div class="flex gap-2 items-center">
+                <button id="rec-btn" onclick="toggleRecord()" class="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center transition-all">🔘</button>
+                <button onclick="document.getElementById('chat-file').click()" class="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center">📎</button>
+                <input type="file" id="chat-file" class="hidden" accept="image/*,video/*" onchange="uploadChatFile(this)">
+                <input type="text" id="msg-input" placeholder="Повідомлення..." class="flex-1 input-field">
+                <button onclick="sendMsg()" class="w-14 h-12 bg-cyan-400 rounded-2xl flex items-center justify-center text-black font-black">➤</button>
+            </div>
+            <video id="preview-video" class="hidden w-32 h-32 rounded-full border-2 border-cyan-400 mx-auto object-cover" autoplay muted></video>
+        </footer>
+    </div>
+
+    <div id="profile-page" class="hidden fixed inset-0 z-[1700] bg-black overflow-y-auto no-scrollbar">
+        <button onclick="togglePage('profile', false)" class="fixed top-6 left-6 z-50 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center">←</button>
+        <div class="relative">
+            <img id="p-banner" class="profile-banner">
+            <input type="file" id="file-banner" class="hidden" onchange="uploadMedia(this, 'banner')">
+            <button id="p-edit-banner" onclick="document.getElementById('file-banner').click()" class="absolute bottom-4 right-4 bg-black/50 p-2 rounded-full">📷</button>
+        </div>
+        <div class="flex flex-col items-center px-8 pb-20">
+            <div class="relative">
+                <img id="p-avatar" class="profile-avatar">
+                <input type="file" id="file-avatar" class="hidden" onchange="uploadMedia(this, 'avatar')">
+                <button id="p-edit-avatar" onclick="document.getElementById('file-avatar').click()" class="absolute bottom-2 right-2 bg-cyan-400 p-2 rounded-full text-black text-xs">✎</button>
+            </div>
+            
+            <input type="text" id="p-name-input" class="text-3xl font-black italic mt-4 bg-transparent border-b border-white/10 text-center outline-none w-full">
+            <div id="p-friend-status" class="mt-4 hidden">
+                <button onclick="toggleFriend()" id="btn-friend" class="btn-primary py-2 px-6 text-xs w-auto">СТАТИ ДРУЗЯМИ</button>
+            </div>
+
+            <div class="w-full mt-10 space-y-4">
+                <div class="p-6 bg-[#111] rounded-[28px] space-y-4">
+                    <div><p id="p-phone" class="font-bold text-gray-400"></p><p class="text-[9px] text-gray-600 font-black">MOBILE</p></div>
+                    <div><p id="p-nick-full" class="font-bold text-cyan-400"></p><p class="text-[9px] text-gray-600 font-black">USERNAME</p></div>
+                    <div>
+                        <input type="text" id="p-bio-input" placeholder="..." class="font-bold bg-transparent outline-none w-full border-b border-white/5">
+                        <p class="text-[9px] text-gray-600 font-black">BIO</p>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                             <input type="date" id="p-bday-input" class="font-bold bg-transparent outline-none flex-1">
+                             <span id="p-age-calc" class="text-cyan-400 font-black text-xs"></span>
+                        </div>
+                        <p class="text-[9px] text-gray-600 font-black">BIRTHDAY</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const KOLO_CONFIG = { databaseURL: "https://gameshop-ff113-default-rtdb.firebaseio.com/" };
+        firebase.initializeApp(KOLO_CONFIG);
+        const DB = firebase.database();
+        emailjs.init("KErbU8_xE37eaf0qi");
+
+        let state = { user: JSON.parse(localStorage.getItem('kolo_v2')), activeChat: null, isRecording: false, mediaRecorder: null, chunks: [] };
+
+        function calculateAge(birthday) {
+            if(!birthday) return "";
+            const diff = Date.now() - new Date(birthday).getTime();
+            return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25)) + " років";
         }
-    }
 
-    async function startRec() {
-        const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        document.getElementById('v-pre').srcObject = s;
-        document.getElementById('rec-box').style.display = 'flex';
-        recorder = new MediaRecorder(s);
-        chunks = [];
-        recorder.ondataavailable = e => chunks.push(e.data);
-        recorder.start();
-    }
+        // AUTH
+        async function checkUserAndSendOTP() {
+            const phone = document.getElementById('auth-phone').value.trim();
+            const snap = await DB.ref('kolo_users').once('value');
+            let found = null;
+            if(snap.val()) { for(let id in snap.val()) if(snap.val()[id].phone === phone) found = snap.val()[id]; }
+            if(found) { state.temp = found; sendOTP('login'); }
+            else { document.getElementById('auth-init').classList.add('hidden'); document.getElementById('reg-details').classList.remove('hidden'); }
+        }
 
-    function stopRec(save) {
-        recorder.onstop = async () => {
-            if(save) {
-                const b = new Blob(chunks, { type: 'video/mp4' });
-                const r = new FileReader();
-                r.onload = async () => {
-                    const cid = [user.nick, active].sort().join('_');
-                    await db.ref('msgs/'+cid).push({ s: user.nick, v: r.result, t: 'v' });
-                };
-                r.readAsDataURL(b);
+        function sendOTP(m) {
+            const email = m === 'login' ? state.temp.email : document.getElementById('reg-email').value;
+            state.otp = Math.floor(100000 + Math.random() * 900000).toString();
+            emailjs.send('service_dbkrnz9', 'template_n90xvc9', { to_email: email, otp_code: state.otp }).then(() => {
+                document.getElementById('auth-init').classList.add('hidden');
+                document.getElementById('reg-details').classList.add('hidden');
+                document.getElementById('otp-view').classList.remove('hidden');
+            });
+        }
+
+        async function verifySession() {
+            if(document.getElementById('otp-input').value === state.otp) {
+                if(!state.temp) {
+                    const u = { name: document.getElementById('reg-name').value, nick: document.getElementById('reg-nick').value.replace('@',''), email: document.getElementById('reg-email').value, phone: document.getElementById('auth-phone').value, bday: document.getElementById('reg-bday').value, bio: "", avatar: "https://api.dicebear.com/7.x/pixel-art/svg?seed="+Date.now(), banner: "", friends: {} };
+                    await DB.ref('kolo_users/' + u.nick).set(u);
+                    state.user = u;
+                } else state.user = state.temp;
+                localStorage.setItem('kolo_v2', JSON.stringify(state.user));
+                location.reload();
             }
-            document.getElementById('v-pre').srcObject.getTracks().forEach(t => t.stop());
-            document.getElementById('rec-box').style.display = 'none';
-        };
-        recorder.stop();
-    }
+        }
 
-    function closeChat() { document.getElementById('chat').classList.add('hidden'); }
+        // CHATS
+        function openChat(nick, av, name) {
+            state.activeChat = nick;
+            document.getElementById('chat-window').classList.remove('hidden');
+            document.getElementById('chat-head-av').src = av;
+            document.getElementById('chat-head-name').innerText = name;
+            const cid = [state.user.nick, nick].sort().join('_');
+            DB.ref('kolo_msgs/'+cid).on('value', s => {
+                const area = document.getElementById('messages-area'); area.innerHTML = '';
+                if(s.val()) Object.entries(s.val()).forEach(([id, m]) => {
+                    let content = m.text;
+                    if(m.type === 'circle') content = `<video src="${m.text}" autoplay loop muted playsinline></video>`;
+                    if(m.type === 'image') content = `<img src="${m.text}" class="rounded-lg max-w-full">`;
+                    if(m.type === 'video') content = `<video src="${m.text}" controls class="rounded-lg max-w-full"></video>`;
+                    
+                    const bubbleClass = m.type === 'circle' ? 'video-note' : 'chat-bubble';
+                    area.innerHTML += `<div class="${m.sender === state.user.nick ? 'self-end' : 'self-start'} ${bubbleClass} ${m.sender === state.user.nick ? 'me' : 'them'}">
+                        ${content}
+                        <button class="msg-del-btn" onclick="deleteMsg('${id}')">X</button>
+                    </div>`;
+                });
+                area.scrollTop = area.scrollHeight;
+            });
+        }
 
-    window.onload = () => {
-        if(user) {
-            document.getElementById('auth').classList.add('hidden');
-            document.getElementById('app').classList.remove('hidden');
-            db.ref('users').on('value', s => {
-                const l = document.getElementById('list');
-                l.innerHTML = '<h3 class="p-2 text-zinc-500">Контакти:</h3>';
-                s.forEach(c => {
-                    if(c.key !== user.nick) l.innerHTML += `<div onclick="openChat('${c.key}')" class="p-4 bg-zinc-900 rounded-xl">${c.key}</div>`;
+        async function deleteMsg(id) {
+            const cid = [state.user.nick, state.activeChat].sort().join('_');
+            await DB.ref(`kolo_msgs/${cid}/${id}`).remove();
+        }
+
+        // VIDEO RECORDING
+        async function toggleRecord() {
+            const btn = document.getElementById('rec-btn');
+            const preview = document.getElementById('preview-video');
+            if(!state.isRecording) {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                preview.srcObject = stream;
+                preview.classList.remove('hidden');
+                state.mediaRecorder = new MediaRecorder(stream);
+                state.chunks = [];
+                state.mediaRecorder.ondataavailable = e => state.chunks.push(e.data);
+                state.mediaRecorder.onstop = async () => {
+                    const blob = new Blob(state.chunks, { type: 'video/mp4' });
+                    const reader = new FileReader();
+                    reader.onload = () => sendMedia(reader.result, 'circle');
+                    reader.readAsDataURL(blob);
+                    stream.getTracks().forEach(t => t.stop());
+                    preview.classList.add('hidden');
+                };
+                state.mediaRecorder.start();
+                btn.style.background = "red";
+                state.isRecording = true;
+                setTimeout(() => { if(state.isRecording) toggleRecord(); }, 90000);
+            } else {
+                state.mediaRecorder.stop();
+                btn.style.background = "rgba(255,255,255,0.05)";
+                state.isRecording = false;
+            }
+        }
+
+        function sendMsg() {
+            const i = document.getElementById('msg-input'); if(!i.value.trim()) return;
+            const cid = [state.user.nick, state.activeChat].sort().join('_');
+            DB.ref('kolo_msgs/'+cid).push({ sender: state.user.nick, text: i.value, type: 'text' });
+            i.value = '';
+        }
+
+        async function sendMedia(data, type) {
+            const cid = [state.user.nick, state.activeChat].sort().join('_');
+            await DB.ref('kolo_msgs/'+cid).push({ sender: state.user.nick, text: data, type: type });
+        }
+
+        function uploadChatFile(input) {
+            const file = input.files[0];
+            const type = file.type.startsWith('image') ? 'image' : 'video';
+            const reader = new FileReader();
+            reader.onload = () => sendMedia(reader.result, type);
+            reader.readAsDataURL(file);
+        }
+
+        // PROFILE LOGIC
+        function viewMyProfile() {
+            togglePage('profile', true);
+            const u = state.user;
+            document.getElementById('p-edit-banner').classList.remove('hidden');
+            document.getElementById('p-edit-avatar').classList.remove('hidden');
+            document.getElementById('p-name-input').readOnly = false;
+            document.getElementById('p-bio-input').readOnly = false;
+            document.getElementById('p-bday-input').readOnly = false;
+            document.getElementById('p-friend-status').classList.add('hidden');
+            renderProfile(u);
+        }
+
+        async function viewForeignProfile(nick) {
+            togglePage('profile', true);
+            const snap = await DB.ref('kolo_users/' + nick).once('value');
+            const u = snap.val();
+            document.getElementById('p-edit-banner').classList.add('hidden');
+            document.getElementById('p-edit-avatar').classList.add('hidden');
+            document.getElementById('p-name-input').readOnly = true;
+            document.getElementById('p-bio-input').readOnly = true;
+            document.getElementById('p-bday-input').readOnly = true;
+            document.getElementById('p-friend-status').classList.remove('hidden');
+            
+            const isFriend = state.user.friends && state.user.friends[nick];
+            document.getElementById('btn-friend').innerText = isFriend ? "ВИДАЛИТИ З ДРУЗІВ" : "СТАТИ ДРУЗЯМИ";
+            state.viewingNick = nick;
+            renderProfile(u);
+        }
+
+        function renderProfile(u) {
+            document.getElementById('p-avatar').src = u.avatar;
+            document.getElementById('p-banner').src = u.banner || "";
+            document.getElementById('p-name-input').value = u.name;
+            document.getElementById('p-phone').innerText = u.phone;
+            document.getElementById('p-nick-full').innerText = "@" + u.nick;
+            document.getElementById('p-bio-input').value = u.bio || "";
+            document.getElementById('p-bday-input').value = u.bday;
+            document.getElementById('p-age-calc').innerText = "(" + calculateAge(u.bday) + ")";
+        }
+
+        async function toggleFriend() {
+            const target = state.viewingNick;
+            const isFriend = state.user.friends && state.user.friends[target];
+            if(isFriend) {
+                await DB.ref(`kolo_users/${state.user.nick}/friends/${target}`).remove();
+                await DB.ref(`kolo_users/${target}/friends/${state.user.nick}`).remove();
+            } else {
+                await DB.ref(`kolo_users/${state.user.nick}/friends/${target}`).set(true);
+                await DB.ref(`kolo_users/${target}/friends/${state.user.nick}`).set(true);
+            }
+            viewForeignProfile(target);
+        }
+
+        function uploadStory(input) {
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const story = { img: reader.result, time: Date.now(), owner: state.user.nick, ownerAv: state.user.avatar };
+                await DB.ref('kolo_stories/' + state.user.nick).set(story);
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+
+        // LISTENERS
+        function initListeners() {
+            DB.ref('kolo_stories').on('value', snap => {
+                const list = document.getElementById('stories-list'); list.innerHTML = '';
+                if(!snap.val()) return;
+                Object.values(snap.val()).forEach(s => {
+                    if(s.owner === state.user.nick || (state.user.friends && state.user.friends[s.owner])) {
+                        list.innerHTML += `<div class="flex flex-col items-center gap-1">
+                            <div class="story-circle"><img src="${s.ownerAv}" class="story-img"></div>
+                            <span class="text-[9px] font-bold text-gray-400">${s.owner}</span>
+                        </div>`;
+                    }
                 });
             });
-            db.ref('users/'+user.nick).set({ nick: user.nick });
+
+            DB.ref(`kolo_chats/${state.user.nick}`).on('value', async snap => {
+                const list = document.getElementById('chats-list'); list.innerHTML = '';
+                if(!snap.val()) return;
+                for(let nick in snap.val()) {
+                    const u = (await DB.ref('kolo_users/'+nick).once('value')).val();
+                    list.innerHTML += `<div onclick="openChat('${u.nick}','${u.avatar}','${u.name}')" class="flex items-center gap-4 p-4 bg-[#111] rounded-[24px]">
+                        <img src="${u.avatar}" class="w-14 h-14 rounded-full object-cover">
+                        <div class="flex-1 font-bold"><h4>${u.name}</h4><p class="text-xs text-gray-500 truncate">${snap.val()[nick].last}</p></div>
+                    </div>`;
+                }
+            });
         }
-    }
-</script>
+
+        // UTILS
+        function toggleMenu() { document.getElementById('side-menu').classList.toggle('active'); }
+        function toggleSearch(s) { document.getElementById('search-panel').classList.toggle('hidden', !s); }
+        function togglePage(p, s) { document.getElementById(p+'-page').classList.toggle('hidden', !s); }
+        function closeChat() { document.getElementById('chat-window').classList.add('hidden'); }
+        function logout() { localStorage.clear(); location.reload(); }
+
+        window.onload = () => {
+            if(state.user) {
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('app-ui').classList.remove('hidden');
+                document.getElementById('menu-name').innerText = state.user.name;
+                document.getElementById('menu-avatar').src = state.user.avatar;
+                initListeners();
+            }
+        };
+
+        document.getElementById('p-name-input').onchange = (e) => DB.ref('kolo_users/'+state.user.nick).update({name: e.target.value});
+        document.getElementById('p-bio-input').onchange = (e) => DB.ref('kolo_users/'+state.user.nick).update({bio: e.target.value});
+        document.getElementById('p-bday-input').onchange = (e) => DB.ref('kolo_users/'+state.user.nick).update({bday: e.target.value});
+    </script>
 </body>
 </html>
