@@ -41,6 +41,8 @@
         
         .msg-del-btn { position: absolute; top: -10px; right: -10px; background: red; color: white; font-size: 8px; padding: 4px; border-radius: 50%; display: none; }
         .chat-bubble:hover .msg-del-btn, .video-note:hover .msg-del-btn { display: block; }
+        
+        .search-res-card { background: #111; padding: 15px; border-radius: 20px; display: flex; align-items: center; gap: 15px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -71,7 +73,7 @@
     <div id="side-menu" class="fixed inset-0 side-menu">
         <div class="absolute inset-0 bg-black/70 backdrop-blur-md" onclick="toggleMenu()"></div>
         <div class="relative w-4/5 h-full bg-[#0a0a0a] p-8 border-r border-white/5 flex flex-col">
-            <div class="flex flex-col gap-4 mb-10 pb-6 border-b border-white/5" onclick="togglePage('profile', true); toggleMenu()">
+            <div class="flex flex-col gap-4 mb-10 pb-6 border-b border-white/5" onclick="viewMyProfile(); toggleMenu()">
                 <img id="menu-avatar" class="w-16 h-16 rounded-full object-cover border-2 border-cyan-400">
                 <div><h3 id="menu-name" class="font-black italic"></h3><p id="menu-nick" class="text-cyan-400 text-xs"></p></div>
             </div>
@@ -80,7 +82,6 @@
                 <button onclick="document.getElementById('file-story').click(); toggleMenu()" class="block w-full text-left font-bold">📸 Додати історію</button>
             </nav>
             <div class="space-y-4 pt-6 border-t border-white/5">
-                <button onclick="togglePage('settings', true); toggleMenu()" class="block w-full text-left font-bold text-gray-400">⚙️ Налаштування</button>
                 <button onclick="logout()" class="block w-full text-left font-bold text-red-500">🚪 Вийти</button>
             </div>
         </div>
@@ -109,17 +110,17 @@
         <button onclick="toggleSearch(true)" class="fixed bottom-28 right-6 w-14 h-14 bg-cyan-400 rounded-full flex items-center justify-center text-black shadow-lg shadow-cyan-400/30">✎</button>
 
         <nav class="h-24 bg-black/90 border-t border-white/5 flex justify-around items-center px-6">
-            <button class="text-cyan-400 flex flex-col items-center"><span class="text-2xl">💬</span><span class="text-[8px] font-black uppercase">Chats</span></button>
+            <button onclick="location.reload()" class="text-cyan-400 flex flex-col items-center"><span class="text-2xl">💬</span><span class="text-[8px] font-black uppercase">Chats</span></button>
             <button onclick="viewMyProfile()" class="text-gray-600 flex flex-col items-center"><span class="text-2xl">👤</span><span class="text-[8px] font-black uppercase">Profile</span></button>
         </nav>
     </div>
 
-    <div id="search-panel" class="hidden fixed inset-0 z-[1500] bg-black p-6">
+    <div id="search-panel" class="hidden fixed inset-0 z-[1500] bg-black p-6 flex flex-col">
         <div class="flex items-center gap-4 mb-8">
             <button onclick="toggleSearch(false)" class="text-2xl">←</button>
-            <input type="text" id="search-input" placeholder="Введіть нікнейм..." class="input-field flex-1">
+            <input type="text" id="search-input" oninput="searchUsers(this.value)" placeholder="Пошук за нікнеймом..." class="input-field flex-1">
         </div>
-        <div id="search-results" class="space-y-4 overflow-y-auto h-full pb-20 no-scrollbar"></div>
+        <div id="search-results" class="space-y-4 overflow-y-auto flex-1 no-scrollbar"></div>
     </div>
 
     <div id="chat-window" class="hidden fixed inset-0 z-[1600] bg-black flex flex-col">
@@ -145,7 +146,7 @@
     <div id="profile-page" class="hidden fixed inset-0 z-[1700] bg-black overflow-y-auto no-scrollbar">
         <button onclick="togglePage('profile', false)" class="fixed top-6 left-6 z-50 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center">←</button>
         <div class="relative">
-            <img id="p-banner" class="profile-banner">
+            <img id="p-banner" class="profile-banner" src="https://images.unsplash.com/photo-1557683316-973673baf926">
             <input type="file" id="file-banner" class="hidden" onchange="uploadMedia(this, 'banner')">
             <button id="p-edit-banner" onclick="document.getElementById('file-banner').click()" class="absolute bottom-4 right-4 bg-black/50 p-2 rounded-full">📷</button>
         </div>
@@ -159,6 +160,7 @@
             <input type="text" id="p-name-input" class="text-3xl font-black italic mt-4 bg-transparent border-b border-white/10 text-center outline-none w-full">
             <div id="p-friend-status" class="mt-4 hidden">
                 <button onclick="toggleFriend()" id="btn-friend" class="btn-primary py-2 px-6 text-xs w-auto">СТАТИ ДРУЗЯМИ</button>
+                <button onclick="startChatFromProfile()" class="btn-primary py-2 px-6 text-xs w-auto bg-white ml-2">MESSAGE</button>
             </div>
 
             <div class="w-full mt-10 space-y-4">
@@ -187,17 +189,17 @@
         const DB = firebase.database();
         emailjs.init("KErbU8_xE37eaf0qi");
 
-        let state = { user: JSON.parse(localStorage.getItem('kolo_v2')), activeChat: null, isRecording: false, mediaRecorder: null, chunks: [] };
+        let state = { user: JSON.parse(localStorage.getItem('kolo_v2')), activeChat: null, isRecording: false, mediaRecorder: null, chunks: [], otp: null, temp: null, viewingNick: null };
 
         function calculateAge(birthday) {
-            if(!birthday) return "";
+            if(!birthday) return "0 років";
             const diff = Date.now() - new Date(birthday).getTime();
             return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25)) + " років";
         }
 
-        // AUTH
         async function checkUserAndSendOTP() {
             const phone = document.getElementById('auth-phone').value.trim();
+            if(!phone) return alert("Введіть номер!");
             const snap = await DB.ref('kolo_users').once('value');
             let found = null;
             if(snap.val()) { for(let id in snap.val()) if(snap.val()[id].phone === phone) found = snap.val()[id]; }
@@ -212,22 +214,42 @@
                 document.getElementById('auth-init').classList.add('hidden');
                 document.getElementById('reg-details').classList.add('hidden');
                 document.getElementById('otp-view').classList.remove('hidden');
-            });
+            }).catch(err => alert("Помилка EmailJS"));
         }
 
         async function verifySession() {
             if(document.getElementById('otp-input').value === state.otp) {
                 if(!state.temp) {
-                    const u = { name: document.getElementById('reg-name').value, nick: document.getElementById('reg-nick').value.replace('@',''), email: document.getElementById('reg-email').value, phone: document.getElementById('auth-phone').value, bday: document.getElementById('reg-bday').value, bio: "", avatar: "https://api.dicebear.com/7.x/pixel-art/svg?seed="+Date.now(), banner: "", friends: {} };
+                    const nick = document.getElementById('reg-nick').value.replace('@','').trim();
+                    const u = { name: document.getElementById('reg-name').value, nick: nick, email: document.getElementById('reg-email').value, phone: document.getElementById('auth-phone').value, bday: document.getElementById('reg-bday').value, bio: "", avatar: "https://api.dicebear.com/7.x/pixel-art/svg?seed="+Date.now(), banner: "https://images.unsplash.com/photo-1557683316-973673baf926", friends: {} };
                     await DB.ref('kolo_users/' + u.nick).set(u);
                     state.user = u;
                 } else state.user = state.temp;
                 localStorage.setItem('kolo_v2', JSON.stringify(state.user));
                 location.reload();
+            } else alert("Невірний код!");
+        }
+
+        async function searchUsers(val) {
+            const results = document.getElementById('search-results');
+            results.innerHTML = '';
+            if(val.length < 2) return;
+            const snap = await DB.ref('kolo_users').once('value');
+            const users = snap.val();
+            for(let id in users) {
+                if(id.includes(val.toLowerCase()) && id !== state.user.nick) {
+                    const u = users[id];
+                    results.innerHTML += `<div class="search-res-card" onclick="viewForeignProfile('${u.nick}')">
+                        <img src="${u.avatar}" class="w-12 h-12 rounded-full object-cover">
+                        <div class="flex-1">
+                            <h4 class="font-bold">${u.name}</h4>
+                            <p class="text-xs text-cyan-400">@${u.nick}</p>
+                        </div>
+                    </div>`;
+                }
             }
         }
 
-        // CHATS
         function openChat(nick, av, name) {
             state.activeChat = nick;
             document.getElementById('chat-window').classList.remove('hidden');
@@ -238,14 +260,18 @@
                 const area = document.getElementById('messages-area'); area.innerHTML = '';
                 if(s.val()) Object.entries(s.val()).forEach(([id, m]) => {
                     let content = m.text;
-                    if(m.type === 'circle') content = `<video src="${m.text}" autoplay loop muted playsinline></video>`;
-                    if(m.type === 'image') content = `<img src="${m.text}" class="rounded-lg max-w-full">`;
-                    if(m.type === 'video') content = `<video src="${m.text}" controls class="rounded-lg max-w-full"></video>`;
+                    if(m.type === 'circle') content = `<video src="${m.text}" autoplay loop muted playsinline class="w-full h-full object-cover"></video>`;
+                    else if(m.type === 'image') content = `<img src="${m.text}" class="rounded-lg max-w-full">`;
+                    else if(m.type === 'video') content = `<video src="${m.text}" controls class="rounded-lg max-w-full"></video>`;
+                    else content = `<p>${m.text}</p>`;
                     
                     const bubbleClass = m.type === 'circle' ? 'video-note' : 'chat-bubble';
-                    area.innerHTML += `<div class="${m.sender === state.user.nick ? 'self-end' : 'self-start'} ${bubbleClass} ${m.sender === state.user.nick ? 'me' : 'them'}">
+                    const sideClass = m.sender === state.user.nick ? 'me' : 'them';
+                    const containerClass = m.sender === state.user.nick ? 'self-end' : 'self-start';
+                    
+                    area.innerHTML += `<div class="${containerClass} ${bubbleClass} ${sideClass}">
                         ${content}
-                        <button class="msg-del-btn" onclick="deleteMsg('${id}')">X</button>
+                        <button class="msg-del-btn" onclick="deleteMsg('${id}')">✕</button>
                     </div>`;
                 });
                 area.scrollTop = area.scrollHeight;
@@ -257,29 +283,37 @@
             await DB.ref(`kolo_msgs/${cid}/${id}`).remove();
         }
 
-        // VIDEO RECORDING
+        async function deleteFullChat() {
+            if(!confirm("Видалити всю переписку?")) return;
+            const cid = [state.user.nick, state.activeChat].sort().join('_');
+            await DB.ref(`kolo_msgs/${cid}`).remove();
+            await DB.ref(`kolo_chats/${state.user.nick}/${state.activeChat}`).remove();
+            closeChat();
+        }
+
         async function toggleRecord() {
             const btn = document.getElementById('rec-btn');
             const preview = document.getElementById('preview-video');
             if(!state.isRecording) {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                preview.srcObject = stream;
-                preview.classList.remove('hidden');
-                state.mediaRecorder = new MediaRecorder(stream);
-                state.chunks = [];
-                state.mediaRecorder.ondataavailable = e => state.chunks.push(e.data);
-                state.mediaRecorder.onstop = async () => {
-                    const blob = new Blob(state.chunks, { type: 'video/mp4' });
-                    const reader = new FileReader();
-                    reader.onload = () => sendMedia(reader.result, 'circle');
-                    reader.readAsDataURL(blob);
-                    stream.getTracks().forEach(t => t.stop());
-                    preview.classList.add('hidden');
-                };
-                state.mediaRecorder.start();
-                btn.style.background = "red";
-                state.isRecording = true;
-                setTimeout(() => { if(state.isRecording) toggleRecord(); }, 90000);
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    preview.srcObject = stream;
+                    preview.classList.remove('hidden');
+                    state.mediaRecorder = new MediaRecorder(stream);
+                    state.chunks = [];
+                    state.mediaRecorder.ondataavailable = e => state.chunks.push(e.data);
+                    state.mediaRecorder.onstop = async () => {
+                        const blob = new Blob(state.chunks, { type: 'video/mp4' });
+                        const reader = new FileReader();
+                        reader.onload = () => sendMedia(reader.result, 'circle');
+                        reader.readAsDataURL(blob);
+                        stream.getTracks().forEach(t => t.stop());
+                        preview.classList.add('hidden');
+                    };
+                    state.mediaRecorder.start();
+                    btn.style.background = "red";
+                    state.isRecording = true;
+                } catch(e) { alert("Камера недоступна"); }
             } else {
                 state.mediaRecorder.stop();
                 btn.style.background = "rgba(255,255,255,0.05)";
@@ -288,18 +322,27 @@
         }
 
         function sendMsg() {
-            const i = document.getElementById('msg-input'); if(!i.value.trim()) return;
+            const i = document.getElementById('msg-input'); 
+            if(!i.value.trim() || !state.activeChat) return;
             const cid = [state.user.nick, state.activeChat].sort().join('_');
-            DB.ref('kolo_msgs/'+cid).push({ sender: state.user.nick, text: i.value, type: 'text' });
+            const msg = { sender: state.user.nick, text: i.value, type: 'text', time: Date.now() };
+            DB.ref('kolo_msgs/'+cid).push(msg);
+            DB.ref(`kolo_chats/${state.user.nick}/${state.activeChat}`).set({ last: i.value, time: Date.now() });
+            DB.ref(`kolo_chats/${state.activeChat}/${state.user.nick}`).set({ last: i.value, time: Date.now() });
             i.value = '';
         }
 
         async function sendMedia(data, type) {
             const cid = [state.user.nick, state.activeChat].sort().join('_');
-            await DB.ref('kolo_msgs/'+cid).push({ sender: state.user.nick, text: data, type: type });
+            const msg = { sender: state.user.nick, text: data, type: type, time: Date.now() };
+            await DB.ref('kolo_msgs/'+cid).push(msg);
+            const label = type === 'circle' ? '🎥 Відео-повідомлення' : '📎 Файл';
+            DB.ref(`kolo_chats/${state.user.nick}/${state.activeChat}`).set({ last: label, time: Date.now() });
+            DB.ref(`kolo_chats/${state.activeChat}/${state.user.nick}`).set({ last: label, time: Date.now() });
         }
 
         function uploadChatFile(input) {
+            if(!input.files[0]) return;
             const file = input.files[0];
             const type = file.type.startsWith('image') ? 'image' : 'video';
             const reader = new FileReader();
@@ -307,23 +350,24 @@
             reader.readAsDataURL(file);
         }
 
-        // PROFILE LOGIC
         function viewMyProfile() {
             togglePage('profile', true);
-            const u = state.user;
+            state.viewingNick = state.user.nick;
             document.getElementById('p-edit-banner').classList.remove('hidden');
             document.getElementById('p-edit-avatar').classList.remove('hidden');
             document.getElementById('p-name-input').readOnly = false;
             document.getElementById('p-bio-input').readOnly = false;
             document.getElementById('p-bday-input').readOnly = false;
             document.getElementById('p-friend-status').classList.add('hidden');
-            renderProfile(u);
+            renderProfile(state.user);
         }
 
         async function viewForeignProfile(nick) {
             togglePage('profile', true);
+            toggleSearch(false);
             const snap = await DB.ref('kolo_users/' + nick).once('value');
             const u = snap.val();
+            state.viewingNick = nick;
             document.getElementById('p-edit-banner').classList.add('hidden');
             document.getElementById('p-edit-avatar').classList.add('hidden');
             document.getElementById('p-name-input').readOnly = true;
@@ -333,19 +377,26 @@
             
             const isFriend = state.user.friends && state.user.friends[nick];
             document.getElementById('btn-friend').innerText = isFriend ? "ВИДАЛИТИ З ДРУЗІВ" : "СТАТИ ДРУЗЯМИ";
-            state.viewingNick = nick;
             renderProfile(u);
         }
 
         function renderProfile(u) {
-            document.getElementById('p-avatar').src = u.avatar;
-            document.getElementById('p-banner').src = u.banner || "";
+            document.getElementById('p-avatar').src = u.avatar || "https://api.dicebear.com/7.x/pixel-art/svg?seed=kolo";
+            document.getElementById('p-banner').src = u.banner || "https://images.unsplash.com/photo-1557683316-973673baf926";
             document.getElementById('p-name-input').value = u.name;
             document.getElementById('p-phone').innerText = u.phone;
             document.getElementById('p-nick-full').innerText = "@" + u.nick;
             document.getElementById('p-bio-input').value = u.bio || "";
-            document.getElementById('p-bday-input').value = u.bday;
+            document.getElementById('p-bday-input').value = u.bday || "";
             document.getElementById('p-age-calc').innerText = "(" + calculateAge(u.bday) + ")";
+        }
+
+        function startChatFromProfile() {
+            if(state.viewingNick === state.user.nick) return;
+            const name = document.getElementById('p-name-input').value;
+            const av = document.getElementById('p-avatar').src;
+            togglePage('profile', false);
+            openChat(state.viewingNick, av, name);
         }
 
         async function toggleFriend() {
@@ -354,11 +405,27 @@
             if(isFriend) {
                 await DB.ref(`kolo_users/${state.user.nick}/friends/${target}`).remove();
                 await DB.ref(`kolo_users/${target}/friends/${state.user.nick}`).remove();
+                delete state.user.friends[target];
             } else {
                 await DB.ref(`kolo_users/${state.user.nick}/friends/${target}`).set(true);
                 await DB.ref(`kolo_users/${target}/friends/${state.user.nick}`).set(true);
+                if(!state.user.friends) state.user.friends = {};
+                state.user.friends[target] = true;
             }
+            localStorage.setItem('kolo_v2', JSON.stringify(state.user));
             viewForeignProfile(target);
+        }
+
+        function uploadMedia(input, type) {
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const update = {}; update[type] = reader.result;
+                await DB.ref('kolo_users/'+state.user.nick).update(update);
+                state.user[type] = reader.result;
+                localStorage.setItem('kolo_v2', JSON.stringify(state.user));
+                renderProfile(state.user);
+            };
+            reader.readAsDataURL(input.files[0]);
         }
 
         function uploadStory(input) {
@@ -366,18 +433,19 @@
             reader.onload = async () => {
                 const story = { img: reader.result, time: Date.now(), owner: state.user.nick, ownerAv: state.user.avatar };
                 await DB.ref('kolo_stories/' + state.user.nick).set(story);
+                alert("Історія додана!");
             };
             reader.readAsDataURL(input.files[0]);
         }
 
-        // LISTENERS
         function initListeners() {
             DB.ref('kolo_stories').on('value', snap => {
                 const list = document.getElementById('stories-list'); list.innerHTML = '';
                 if(!snap.val()) return;
                 Object.values(snap.val()).forEach(s => {
-                    if(s.owner === state.user.nick || (state.user.friends && state.user.friends[s.owner])) {
-                        list.innerHTML += `<div class="flex flex-col items-center gap-1">
+                    const isExp = (Date.now() - s.time) > 86400000;
+                    if(!isExp && (s.owner === state.user.nick || (state.user.friends && state.user.friends[s.owner]))) {
+                        list.innerHTML += `<div class="flex flex-col items-center gap-1" onclick="alert('Перегляд історії...')">
                             <div class="story-circle"><img src="${s.ownerAv}" class="story-img"></div>
                             <span class="text-[9px] font-bold text-gray-400">${s.owner}</span>
                         </div>`;
@@ -388,21 +456,24 @@
             DB.ref(`kolo_chats/${state.user.nick}`).on('value', async snap => {
                 const list = document.getElementById('chats-list'); list.innerHTML = '';
                 if(!snap.val()) return;
-                for(let nick in snap.val()) {
-                    const u = (await DB.ref('kolo_users/'+nick).once('value')).val();
-                    list.innerHTML += `<div onclick="openChat('${u.nick}','${u.avatar}','${u.name}')" class="flex items-center gap-4 p-4 bg-[#111] rounded-[24px]">
-                        <img src="${u.avatar}" class="w-14 h-14 rounded-full object-cover">
-                        <div class="flex-1 font-bold"><h4>${u.name}</h4><p class="text-xs text-gray-500 truncate">${snap.val()[nick].last}</p></div>
-                    </div>`;
+                const sorted = Object.entries(snap.val()).sort((a,b) => b[1].time - a[1].time);
+                for(let [nick, data] of sorted) {
+                    const uSnap = await DB.ref('kolo_users/'+nick).once('value');
+                    const u = uSnap.val();
+                    if(u) {
+                        list.innerHTML += `<div onclick="openChat('${u.nick}','${u.avatar}','${u.name}')" class="flex items-center gap-4 p-4 bg-[#111] rounded-[24px] active:scale-95 transition-transform">
+                            <img src="${u.avatar}" class="w-14 h-14 rounded-full object-cover">
+                            <div class="flex-1 font-bold"><h4>${u.name}</h4><p class="text-xs text-gray-500 truncate">${data.last}</p></div>
+                        </div>`;
+                    }
                 }
             });
         }
 
-        // UTILS
         function toggleMenu() { document.getElementById('side-menu').classList.toggle('active'); }
-        function toggleSearch(s) { document.getElementById('search-panel').classList.toggle('hidden', !s); }
+        function toggleSearch(s) { document.getElementById('search-panel').classList.toggle('hidden', !s); if(s) document.getElementById('search-input').focus(); }
         function togglePage(p, s) { document.getElementById(p+'-page').classList.toggle('hidden', !s); }
-        function closeChat() { document.getElementById('chat-window').classList.add('hidden'); }
+        function closeChat() { document.getElementById('chat-window').classList.add('hidden'); state.activeChat = null; }
         function logout() { localStorage.clear(); location.reload(); }
 
         window.onload = () => {
@@ -411,13 +482,27 @@
                 document.getElementById('app-ui').classList.remove('hidden');
                 document.getElementById('menu-name').innerText = state.user.name;
                 document.getElementById('menu-avatar').src = state.user.avatar;
+                document.getElementById('menu-nick').innerText = "@" + state.user.nick;
                 initListeners();
             }
         };
 
-        document.getElementById('p-name-input').onchange = (e) => DB.ref('kolo_users/'+state.user.nick).update({name: e.target.value});
-        document.getElementById('p-bio-input').onchange = (e) => DB.ref('kolo_users/'+state.user.nick).update({bio: e.target.value});
-        document.getElementById('p-bday-input').onchange = (e) => DB.ref('kolo_users/'+state.user.nick).update({bday: e.target.value});
+        document.getElementById('p-name-input').onchange = (e) => {
+            DB.ref('kolo_users/'+state.user.nick).update({name: e.target.value});
+            state.user.name = e.target.value;
+            localStorage.setItem('kolo_v2', JSON.stringify(state.user));
+        };
+        document.getElementById('p-bio-input').onchange = (e) => {
+            DB.ref('kolo_users/'+state.user.nick).update({bio: e.target.value});
+            state.user.bio = e.target.value;
+            localStorage.setItem('kolo_v2', JSON.stringify(state.user));
+        };
+        document.getElementById('p-bday-input').onchange = (e) => {
+            DB.ref('kolo_users/'+state.user.nick).update({bday: e.target.value});
+            state.user.bday = e.target.value;
+            localStorage.setItem('kolo_v2', JSON.stringify(state.user));
+            document.getElementById('p-age-calc').innerText = "(" + calculateAge(e.target.value) + ")";
+        };
     </script>
 </body>
 </html>
