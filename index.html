@@ -3,224 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KOLO LITE PRO 2026</title>
-    
+    <title>KOLO ZERO</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-    
     <style>
-        :root { --accent: #00e5ff; --bg: #000; --surf: #111; }
-        body { font-family: sans-serif; background: var(--bg); color: #fff; margin: 0; overflow: hidden; height: 100vh; }
-        
-        .chat-bubble { max-width: 85%; padding: 12px 16px; border-radius: 18px; margin-bottom: 8px; position: relative; font-weight: 500; }
-        .me { background: var(--accent); color: #000; align-self: flex-end; }
-        .them { background: var(--surf); align-self: flex-start; }
-
-        .video-note { width: 220px; height: 220px; border-radius: 50%; overflow: hidden; border: 3px solid var(--accent); position: relative; margin: 8px 0; background: #000; flex-shrink: 0; }
-        .video-note video { width: 100%; height: 100%; object-fit: cover; }
-
-        /* ВИДАЛЕННЯ */
-        .del-btn { position: absolute; top: -5px; right: -5px; background: #ff3b30; color: #fff; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; z-index: 10; border: 1px solid #000; cursor: pointer; opacity: 0.8; }
-        
-        .rec-overlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; }
-        .circle-pre { width: 280px; height: 280px; border-radius: 50%; border: 5px solid var(--accent); overflow: hidden; margin-bottom: 30px; }
-        .circle-pre video { width: 100%; height: 100%; object-fit: cover; }
-
-        .btn-send { background: var(--accent); color: #000; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; border: none; }
-        
-        .side-menu { position: fixed; inset: 0; transform: translateX(-100%); transition: 0.3s; z-index: 5000; background: rgba(0,0,0,0.8); }
-        .side-menu.active { transform: translateX(0); }
-        .menu-content { width: 280px; height: 100%; background: #080808; padding: 40px 20px; }
-
-        .no-scroll::-webkit-scrollbar { display: none; }
-        input { background: #1a1a1a; color: #fff; border: 1px solid #333; border-radius: 12px; padding: 12px; }
+        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; overflow: hidden; height: 100vh; }
+        .bubble { max-width: 80%; padding: 12px; border-radius: 15px; margin: 5px 0; position: relative; }
+        .me { background: #00e5ff; color: #000; align-self: flex-end; }
+        .them { background: #1a1a1a; align-self: flex-start; }
+        .circle { width: 200px; height: 200px; border-radius: 50%; overflow: hidden; border: 3px solid #00e5ff; position: relative; margin: 10px 0; }
+        .circle video { width: 100%; height: 100%; object-fit: cover; }
+        .del { position: absolute; top: -5px; right: -5px; background: red; color: #fff; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; z-index: 5; border: 1px solid #000; }
+        .rec-ui { position: fixed; inset: 0; background: #000; z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .btn-send { background: #00e5ff; color: #000; padding: 10px 20px; border-radius: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="rec-ui" class="rec-overlay">
-        <div class="circle-pre"><video id="rec-v" autoplay muted playsinline></video></div>
-        <div class="flex gap-8">
-            <button onclick="stopRec(false)" class="text-gray-400 font-bold uppercase">Відміна</button>
-            <button onclick="stopRec(true)" class="bg-white text-black px-8 py-3 rounded-full font-bold uppercase">Готово</button>
+<div id="auth" class="fixed inset-0 bg-black z-[200] flex flex-col items-center justify-center p-6 text-center">
+    <h1 class="text-4xl font-bold mb-8">KOLO ZERO</h1>
+    <input type="text" id="nick" placeholder="Твій нік" class="bg-zinc-900 p-4 rounded-xl w-full mb-4 outline-none">
+    <button onclick="login()" class="btn-send w-full">ПОЧАТИ</button>
+</div>
+
+<div id="app" class="hidden h-full flex flex-col">
+    <div id="list" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
+    <div id="chat" class="hidden fixed inset-0 bg-black flex flex-col z-50">
+        <div class="p-4 border-b border-zinc-800 flex items-center gap-4">
+            <button onclick="closeChat()" class="text-[#00e5ff]">← Назад</button>
+            <b id="chat-name"></b>
+        </div>
+        <div id="msgs" class="flex-1 overflow-y-auto p-4 flex flex-col bg-[#050505]"></div>
+        <div class="p-3 border-t border-zinc-800 flex gap-2 items-center">
+            <button onclick="startRec()" class="text-2xl">🔘</button>
+            <input type="text" id="m-in" placeholder="Повідомлення..." class="flex-1 bg-zinc-900 p-3 rounded-xl outline-none">
+            <button onclick="sendMsg()" class="btn-send">ВІДПРАВИТИ</button>
         </div>
     </div>
+</div>
 
-    <div id="auth-screen" class="fixed inset-0 z-[10000] bg-black p-10 flex flex-col justify-center">
-        <div id="auth-box" class="space-y-6 text-center">
-            <h1 class="text-5xl font-black italic">KOLO</h1>
-            <input type="tel" id="u-phone" placeholder="0XXXXXXXXX" class="w-full text-center text-xl font-bold">
-            <button onclick="startAuth()" class="w-full py-4 bg-cyan-400 text-black font-bold rounded-xl">УВІЙТИ</button>
-        </div>
-        <div id="otp-box" class="hidden space-y-6 text-center">
-            <h2 class="text-xl font-bold">КОД З EMAIL</h2>
-            <input type="text" id="otp-code" class="w-full text-center text-4xl font-bold tracking-widest bg-transparent border-b-2 border-cyan-400">
-            <button onclick="checkOTP()" class="w-full py-4 bg-cyan-400 text-black font-bold rounded-xl">ПІДТВЕРДИТИ</button>
-        </div>
+<div id="rec-box" class="rec-ui">
+    <video id="v-pre" autoplay muted playsinline class="w-64 h-64 rounded-full border-4 border-[#00e5ff] object-cover mb-8"></video>
+    <div class="flex gap-4">
+        <button onclick="stopRec(false)" class="p-4 text-gray-500">СКАСУВАТИ</button>
+        <button onclick="stopRec(true)" class="btn-send px-8">ГОТОВО</button>
     </div>
+</div>
 
-    <div id="main-app" class="hidden h-full flex flex-col">
-        <header class="p-5 border-b border-zinc-900 flex justify-between items-center bg-black">
-            <button onclick="document.getElementById('side').classList.add('active')" class="text-2xl">☰</button>
-            <h2 class="font-bold tracking-tighter italic">KOLO</h2>
-            <div class="w-8"></div>
-        </header>
+<script>
+    firebase.initializeApp({ databaseURL: "https://gameshop-ff113-default-rtdb.firebaseio.com/" });
+    const db = firebase.database();
+    let user = JSON.parse(localStorage.getItem('kolo_z')), active = null, recorder = null, chunks = [];
 
-        <div id="chat-list" class="flex-1 overflow-y-auto p-4 space-y-2 no-scroll"></div>
+    function login() {
+        const n = document.getElementById('nick').value;
+        if(!n) return;
+        user = { nick: n };
+        localStorage.setItem('kolo_z', JSON.stringify(user));
+        location.reload();
+    }
 
-        <nav class="h-16 border-t border-zinc-900 flex justify-around items-center bg-black">
-            <button class="text-cyan-400 text-xs font-bold">ЧАТИ</button>
-            <button onclick="alert('Профіль в розробці')" class="text-zinc-600 text-xs font-bold">ПРОФІЛЬ</button>
-        </nav>
-    </div>
-
-    <div id="chat-win" class="hidden fixed inset-0 z-[2000] bg-black flex flex-col">
-        <header class="p-4 border-b border-zinc-900 flex items-center gap-4 bg-black">
-            <button onclick="document.getElementById('chat-win').classList.add('hidden')" class="text-2xl text-cyan-400">←</button>
-            <img id="cw-av" class="w-10 h-10 rounded-full object-cover">
-            <h3 id="cw-name" class="font-bold"></h3>
-        </header>
-
-        <div id="msg-box" class="flex-1 overflow-y-auto p-4 flex flex-col no-scroll bg-[#050505]"></div>
-
-        <footer class="p-3 bg-black border-t border-zinc-900 flex gap-2 items-center">
-            <button onclick="startRec()" class="w-12 h-12 bg-zinc-900 rounded-full flex items-center justify-center text-xl">🔘</button>
-            <input type="text" id="m-input" placeholder="Пиши..." class="flex-1 bg-zinc-900 p-3 rounded-xl outline-none">
-            <button onclick="send()" class="btn-send">➤</button>
-        </footer>
-    </div>
-
-    <div id="side" class="side-menu">
-        <div class="menu-content flex flex-col">
-            <h2 class="text-3xl font-bold mb-10 italic">KOLO</h2>
-            <button onclick="localStorage.clear(); location.reload()" class="text-left text-red-500 font-bold">ВИЙТИ</button>
-            <button onclick="document.getElementById('side').classList.remove('active')" class="mt-auto text-zinc-500">Закрити</button>
-        </div>
-    </div>
-
-    <script>
-        const cfg = { databaseURL: "https://gameshop-ff113-default-rtdb.firebaseio.com/" };
-        firebase.initializeApp(cfg);
-        const db = firebase.database();
-        emailjs.init("KErbU8_xE37eaf0qi");
-
-        let user = JSON.parse(localStorage.getItem('kolo_v2'));
-        let activeNick = null, recorder = null, chunks = [];
-
-        // АВТОРИЗАЦІЯ
-        async function startAuth() {
-            const ph = document.getElementById('u-phone').value;
-            const s = await db.ref('kolo_users').once('value');
-            let found = null;
-            s.forEach(c => { if(c.val().phone.includes(ph)) found = c.val(); });
-
-            if(found) {
-                user = found;
-                user.otp = Math.floor(1000 + Math.random()*9000).toString();
-                emailjs.send('service_dbkrnz9', 'template_n90xvc9', { to_email: user.email, otp_code: user.otp });
-                document.getElementById('auth-box').classList.add('hidden');
-                document.getElementById('otp-box').classList.remove('hidden');
-            } else alert("Не знайдено");
-        }
-
-        function checkOTP() {
-            if(document.getElementById('otp-code').value === user.otp) {
-                localStorage.setItem('kolo_v2', JSON.stringify(user));
-                location.reload();
-            }
-        }
-
-        // ПОВІДОМЛЕННЯ
-        function openChat(nick, av, name) {
-            activeNick = nick;
-            document.getElementById('chat-win').classList.remove('hidden');
-            document.getElementById('cw-av').src = av;
-            document.getElementById('cw-name').innerText = name;
-            
-            const cid = [user.nick, activeNick].sort().join('_');
-            db.ref('kolo_msgs/'+cid).off();
-            db.ref('kolo_msgs/'+cid).on('value', s => {
-                const box = document.getElementById('msg-box');
-                box.innerHTML = '';
-                if(s.val()) Object.entries(s.val()).forEach(([id, m]) => {
-                    const isMe = m.sender === user.nick;
-                    const type = m.type === 'circle' ? 'video-note' : 'chat-bubble';
-                    const content = m.type === 'circle' ? `<video src="${m.text}" autoplay loop muted playsinline></video>` : m.text;
-                    box.innerHTML += `
-                        <div class="${isMe?'self-end':'self-start'} ${type} ${isMe?'me':'them'}">
-                            ${content}
-                            <div class="del-btn" onclick="delMsg('${id}')">×</div>
-                        </div>`;
-                });
-                box.scrollTop = box.scrollHeight;
+    function openChat(n) {
+        active = n;
+        document.getElementById('chat').classList.remove('hidden');
+        document.getElementById('chat-name').innerText = n;
+        const cid = [user.nick, n].sort().join('_');
+        db.ref('msgs/'+cid).on('value', s => {
+            const mBox = document.getElementById('msgs');
+            mBox.innerHTML = '';
+            if(s.val()) Object.entries(s.val()).forEach(([id, m]) => {
+                const isMe = m.s === user.nick;
+                const cls = isMe ? 'me' : 'them';
+                const content = m.t === 'v' ? `<video src="${m.v}" autoplay loop muted playsinline></video>` : m.v;
+                mBox.innerHTML += `<div class="${cls} ${m.t==='v'?'circle':'bubble'} flex flex-col">
+                    <div class="del" onclick="del('${id}')">×</div>
+                    ${content}
+                </div>`;
             });
-        }
+            mBox.scrollTop = mBox.scrollHeight;
+        });
+    }
 
-        async function send() {
-            const val = document.getElementById('m-input').value;
-            if(!val) return;
-            const cid = [user.nick, activeNick].sort().join('_');
-            await db.ref('kolo_msgs/'+cid).push({ sender: user.nick, text: val, type: 'text' });
-            document.getElementById('m-input').value = '';
-        }
+    async function sendMsg() {
+        const i = document.getElementById('m-in');
+        if(!i.value) return;
+        const cid = [user.nick, active].sort().join('_');
+        await db.ref('msgs/'+cid).push({ s: user.nick, v: i.value, t: 'txt' });
+        i.value = '';
+    }
 
-        async function delMsg(id) {
-            const cid = [user.nick, activeNick].sort().join('_');
-            if(confirm("Видалити?")) await db.ref(`kolo_msgs/${cid}/${id}`).remove();
+    async function del(id) {
+        if(confirm("Видалити?")) {
+            const cid = [user.nick, active].sort().join('_');
+            await db.ref(`msgs/${cid}/${id}`).remove();
         }
+    }
 
-        // КРУЖКИ
-        async function startRec() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                document.getElementById('rec-v').srcObject = stream;
-                document.getElementById('rec-ui').style.display = 'flex';
-                recorder = new MediaRecorder(stream);
-                chunks = [];
-                recorder.ondataavailable = e => chunks.push(e.data);
-                recorder.start();
-            } catch(e) { alert("Доступ заборонено"); }
-        }
+    async function startRec() {
+        const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        document.getElementById('v-pre').srcObject = s;
+        document.getElementById('rec-box').style.display = 'flex';
+        recorder = new MediaRecorder(s);
+        chunks = [];
+        recorder.ondataavailable = e => chunks.push(e.data);
+        recorder.start();
+    }
 
-        function stopRec(save) {
-            recorder.onstop = async () => {
-                if(save) {
-                    const blob = new Blob(chunks, { type: 'video/mp4' });
-                    const r = new FileReader();
-                    r.onload = async () => {
-                        const cid = [user.nick, activeNick].sort().join('_');
-                        await db.ref('kolo_msgs/'+cid).push({ sender: user.nick, text: r.result, type: 'circle' });
-                    };
-                    r.readAsDataURL(blob);
-                }
-                document.getElementById('rec-v').srcObject.getTracks().forEach(t => t.stop());
-                document.getElementById('rec-ui').style.display = 'none';
-            };
-            recorder.stop();
-        }
-
-        // СТАРТ
-        window.onload = () => {
-            if(user) {
-                document.getElementById('auth-screen').classList.add('hidden');
-                document.getElementById('main-app').classList.remove('hidden');
-                db.ref('kolo_users').once('value', s => {
-                    const list = document.getElementById('chat-list');
-                    s.forEach(c => {
-                        const u = c.val();
-                        if(u.nick !== user.nick) {
-                            list.innerHTML += `
-                                <div onclick="openChat('${u.nick}','${u.avatar}','${u.name}')" class="flex items-center gap-3 p-4 bg-zinc-900 rounded-2xl mb-2">
-                                    <img src="${u.avatar}" class="w-12 h-12 rounded-full">
-                                    <span class="font-bold">${u.name}</span>
-                                </div>`;
-                        }
-                    });
-                });
+    function stopRec(save) {
+        recorder.onstop = async () => {
+            if(save) {
+                const b = new Blob(chunks, { type: 'video/mp4' });
+                const r = new FileReader();
+                r.onload = async () => {
+                    const cid = [user.nick, active].sort().join('_');
+                    await db.ref('msgs/'+cid).push({ s: user.nick, v: r.result, t: 'v' });
+                };
+                r.readAsDataURL(b);
             }
+            document.getElementById('v-pre').srcObject.getTracks().forEach(t => t.stop());
+            document.getElementById('rec-box').style.display = 'none';
         };
-    </script>
+        recorder.stop();
+    }
+
+    function closeChat() { document.getElementById('chat').classList.add('hidden'); }
+
+    window.onload = () => {
+        if(user) {
+            document.getElementById('auth').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+            db.ref('users').on('value', s => {
+                const l = document.getElementById('list');
+                l.innerHTML = '<h3 class="p-2 text-zinc-500">Контакти:</h3>';
+                s.forEach(c => {
+                    if(c.key !== user.nick) l.innerHTML += `<div onclick="openChat('${c.key}')" class="p-4 bg-zinc-900 rounded-xl">${c.key}</div>`;
+                });
+            });
+            db.ref('users/'+user.nick).set({ nick: user.nick });
+        }
+    }
+</script>
 </body>
 </html>
