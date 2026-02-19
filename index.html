@@ -22,7 +22,7 @@
         .profile-banner { width: 100%; height: 180px; object-fit: cover; border-radius: 0 0 35px 35px; background: #222; }
         .profile-avatar { width: 120px; height: 120px; border-radius: 50%; border: 5px solid var(--bg); margin-top: -60px; object-fit: cover; background: #333; }
         
-        .chat-bubble { max-width: 80%; padding: 12px 18px; border-radius: 22px; font-size: 14px; font-weight: 600; margin-bottom: 4px; animation: slideUp 0.3s ease; cursor: pointer; position: relative; word-wrap: break-word; }
+        .chat-bubble { max-width: 80%; padding: 12px 18px; border-radius: 22px; font-size: 14px; font-weight: 600; margin-bottom: 8px; animation: slideUp 0.3s ease; cursor: pointer; position: relative; word-wrap: break-word; }
         .me { background: var(--bubble-me); color: black; align-self: flex-end; border-bottom-right-radius: 4px; }
         .them { background: #222; color: white; align-self: flex-start; border-bottom-left-radius: 4px; }
 
@@ -65,16 +65,34 @@
 
         .forward-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 7000; display: none; flex-direction: column; padding: 20px; }
         
-        .msg-status-tick { font-size: 12px; margin-left: 6px; font-weight: 900; }
+        .msg-status-tick { font-size: 10px; margin-left: 6px; font-weight: 900; opacity: 0.7; }
         .tick-gray { color: #555; }
         .tick-green { color: var(--green-tick); text-shadow: 0 0 5px rgba(0,255,136,0.3); }
         
         .unread-badge { background: var(--accent); color: black; font-size: 10px; padding: 2px 6px; border-radius: 10px; min-width: 20px; text-align: center; font-weight: 900; }
-        .msg-date-tag { font-size: 8px; font-weight: 800; color: #444; text-transform: uppercase; margin-bottom: 2px; }
-        .me .msg-date-tag { text-align: right; color: rgba(0,0,0,0.4); }
+
+        .pinned-bar { background: rgba(20,20,20,0.9); backdrop-blur: 10px; padding: 8px 20px; border-bottom: 1px solid #333; display: none; align-items: center; gap: 12px; cursor: pointer; }
+        .msg-time { font-size: 9px; opacity: 0.5; margin-bottom: 2px; display: block; }
+        .reaction-bar { display: flex; gap: 5px; margin-top: 4px; }
+        .reaction-item { font-size: 12px; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 10px; }
+        .biometric-overlay { position: fixed; inset: 0; background: black; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
+
+    <div id="bio-lock" class="biometric-overlay hidden">
+        <h2 class="text-3xl font-black mb-10 italic">SECURITY CHECK</h2>
+        <div class="flex gap-10">
+            <button onclick="unlockApp('Fingerprint')" class="flex flex-col items-center gap-2">
+                <span class="text-6xl">☝️</span>
+                <span class="text-[10px] font-bold">TOUCH ID</span>
+            </button>
+            <button onclick="unlockApp('Face')" class="flex flex-col items-center gap-2">
+                <span class="text-6xl">👤</span>
+                <span class="text-[10px] font-bold">FACE ID</span>
+            </button>
+        </div>
+    </div>
 
     <div id="forward-modal" class="forward-modal">
         <div class="flex items-center justify-between mb-6">
@@ -119,7 +137,12 @@
     <div id="msg-context-menu" class="custom-menu">
         <button onclick="copyMsgText()">Скопіювати</button>
         <button onclick="openForward()">Переслати</button>
-        <button id="pin-btn-ctx" onclick="togglePinMsg()">Закріпити</button>
+        <button onclick="pinMessage()">Закріпити</button>
+        <div class="flex gap-2 p-2 border-t border-white/5">
+            <button onclick="addReaction('❤️')">❤️</button>
+            <button onclick="addReaction('🔥')">🔥</button>
+            <button onclick="addReaction('😂')">😂</button>
+        </div>
         <button class="del" onclick="handleDeleteMsg()">Видалити для всіх</button>
     </div>
 
@@ -148,11 +171,12 @@
         <div class="absolute inset-0 bg-black/70 backdrop-blur-md" onclick="toggleMenu()"></div>
         <div class="relative w-4/5 h-full bg-[#0a0a0a] p-8 border-r border-white/5 flex flex-col">
             <div class="flex flex-col gap-4 mb-10 pb-6 border-b border-white/5" onclick="viewMyProfile(); toggleMenu()">
-                <img id="menu-avatar" class="w-16 h-16 rounded-cover border-2 border-cyan-400">
+                <img id="menu-avatar" class="w-16 h-16 rounded-full object-cover border-2 border-cyan-400">
                 <div><h3 id="menu-name" class="font-black italic"></h3><p id="menu-nick" class="text-cyan-400 text-xs"></p></div>
             </div>
             <nav class="space-y-6 flex-1">
                 <button onclick="viewMyProfile(); toggleMenu()" class="block w-full text-left font-bold">👤 Мій профіль</button>
+                <button onclick="openGroupCreate(); toggleMenu()" class="block w-full text-left font-bold">👥 Створити чат</button>
                 <button onclick="document.getElementById('file-story').click(); toggleMenu()" class="block w-full text-left font-bold">📸 Додати історію</button>
             </nav>
             <div class="space-y-4 pt-6 border-t border-white/5">
@@ -187,6 +211,16 @@
         </nav>
     </div>
 
+    <div id="group-create-panel" class="hidden fixed inset-0 z-[1500] bg-black p-6 flex flex-col">
+        <div class="flex items-center gap-4 mb-8">
+            <button onclick="document.getElementById('group-create-panel').classList.add('hidden')" class="text-2xl">←</button>
+            <h2 class="text-xl font-bold italic">ОБЕРІТЬ ЛЮДЕЙ</h2>
+        </div>
+        <input type="text" id="group-name-input" placeholder="Назва чату..." class="input-field mb-6">
+        <div id="group-user-list" class="space-y-4 overflow-y-auto flex-1 no-scrollbar"></div>
+        <button onclick="finishGroupCreate()" class="btn-primary mt-6">СТВОРИТИ ГРУПУ</button>
+    </div>
+
     <div id="search-panel" class="hidden fixed inset-0 z-[1500] bg-black p-6 flex flex-col">
         <div class="flex items-center gap-4 mb-8">
             <button onclick="toggleSearch(false)" class="text-2xl">←</button>
@@ -200,11 +234,17 @@
             <button onclick="closeChat()" class="text-cyan-400 text-2xl">←</button>
             <img id="chat-head-av" class="w-10 h-10 rounded-full object-cover" onclick="viewForeignProfile(state.activeChat)">
             <div class="flex-1" onclick="viewForeignProfile(state.activeChat)"><h3 id="chat-head-name" class="font-black text-sm"></h3><p id="chat-status" class="text-[9px] text-cyan-500">OFFLINE</p></div>
-            <div class="flex flex-col items-end gap-1">
-                 <button onclick="deleteFullChat()" class="text-red-500 text-[8px] font-black">CLEAR ALL</button>
-                 <button onclick="cleanOldMessages()" class="text-red-600 text-[8px] font-black border border-red-900 px-1 rounded">AUTO CLEAN</button>
-            </div>
+            <button onclick="cleanOldMessages()" class="text-red-500 text-[10px] font-black border border-red-500/30 px-2 py-1 rounded">CLEAN OLD</button>
+            <button onclick="deleteFullChat()" class="text-red-500 text-[10px] font-black">CLEAR</button>
         </header>
+        <div id="pinned-msg-bar" class="pinned-bar" onclick="goToPinned()">
+            <div class="w-1 h-6 bg-cyan-400 rounded-full"></div>
+            <div class="flex-1 overflow-hidden">
+                <p class="text-[9px] font-black text-cyan-400 uppercase">Закріплене повідомлення</p>
+                <p id="pinned-msg-preview" class="text-xs truncate opacity-70"></p>
+            </div>
+            <button onclick="event.stopPropagation(); unpinMessage()" class="text-lg opacity-50">✕</button>
+        </div>
         <div id="messages-area" class="flex-1 overflow-y-auto p-6 flex flex-col no-scrollbar" onclick="hideMenu()"></div>
         <footer class="p-4 bg-black border-t border-white/5 flex flex-col gap-3">
             <div class="flex gap-2 items-center">
@@ -294,10 +334,11 @@
             selectedMsgId: null,
             selectedMsgText: null,
             selectedMsgType: null,
-            selectedMsgPinned: false,
             storyQueue: [],
             currentStoryIndex: 0,
-            storyTimer: null
+            storyTimer: null,
+            groupSelection: [],
+            pinnedId: null
         };
 
         function calculateAge(birthday) {
@@ -309,10 +350,10 @@
         function formatMsgDate(ts) {
             const d = new Date(ts);
             const now = new Date();
-            const timeStr = d.getHours().toString().padStart(2,'0') + ":" + d.getMinutes().toString().padStart(2,'0');
-            if(d.toDateString() === now.toDateString()) return timeStr;
-            const months = ["січ","лют","бер","квіт","трав","черв","лип","серп","вер","жовт","лист","груд"];
-            return `${timeStr}  ${d.getDate()} ${months[d.getMonth()]}`;
+            const time = d.getHours().toString().padStart(2,'0') + ":" + d.getMinutes().toString().padStart(2,'0');
+            if(d.toDateString() === now.toDateString()) return time;
+            const months = ["січ", "лют", "бер", "квіт", "трав", "черв", "лип", "серп", "вер", "жовт", "лист", "груд"];
+            return time + " " + d.getDate() + " " + months[d.getMonth()];
         }
 
         function formatTimeAgo(timestamp) {
@@ -331,6 +372,23 @@
                 return name.substring(0, 14) + name.charAt(name.length - 1);
             }
             return name;
+        }
+
+        async function cleanOldMessages() {
+            if(!confirm('Ви впевнені, що хочете видалити повідомлення старіші за 3 тижні?')) return;
+            const cid = [state.user.nick, state.activeChat].sort().join('_');
+            const threeWeeks = 3 * 7 * 24 * 60 * 60 * 1000;
+            const limit = Date.now() - threeWeeks;
+            const snap = await DB.ref('kolo_msgs/'+cid).once('value');
+            if(snap.val()) {
+                Object.entries(snap.val()).forEach(([id, m]) => {
+                    if(m.time < limit && !m.pinned) DB.ref(`kolo_msgs/${cid}/${id}`).remove();
+                });
+            }
+        }
+
+        function unlockApp(method) {
+            document.getElementById('bio-lock').classList.add('hidden');
         }
 
         async function checkUserAndSendOTP() {
@@ -400,7 +458,13 @@
             DB.ref('kolo_msgs/'+cid).on('value', s => {
                 const area = document.getElementById('messages-area'); 
                 area.innerHTML = '';
+                document.getElementById('pinned-bar').style.display = 'none';
                 if(s.val()) Object.entries(s.val()).forEach(([id, m]) => {
+                    if(m.pinned) {
+                        document.getElementById('pinned-bar').style.display = 'flex';
+                        document.getElementById('pinned-msg-preview').innerText = m.type === 'text' ? m.text : 'Медіафайл';
+                        state.pinnedId = id;
+                    }
                     if(m.sender !== state.user.nick && !m.read) DB.ref(`kolo_msgs/${cid}/${id}/read`).set(true);
                     
                     let content = '';
@@ -416,32 +480,89 @@
                     
                     let tickHtml = '';
                     if(m.sender === state.user.nick) {
-                        tickHtml = m.read 
-                            ? `<span class="msg-status-tick tick-green">✓✓</span>` 
-                            : `<span class="msg-status-tick tick-gray">✓</span>`;
+                        tickHtml = m.read ? `<span class="msg-status-tick tick-green">✓✓</span>` : `<span class="msg-status-tick tick-gray">✓</span>`;
                     }
                     
-                    const pinIcon = m.pinned ? `<span class="text-[10px] ml-1">📌</span>` : '';
-                    const dateTag = `<div class="msg-date-tag">${formatMsgDate(m.time)}</div>`;
+                    let reactions = '';
+                    if(m.reactions) {
+                        reactions = `<div class="reaction-bar">`;
+                        for(let r in m.reactions) reactions += `<span class="reaction-item">${r}</span>`;
+                        reactions += `</div>`;
+                    }
                     
                     const div = document.createElement('div');
-                    div.className = `${cClass} flex flex-col`;
-                    div.style.maxWidth = "80%";
-                    div.innerHTML = `${dateTag}<div class="${bClass} ${sClass} w-full">${content}${tickHtml}${pinIcon}</div>`;
+                    div.id = "msg-" + id;
+                    div.className = `${cClass} ${bClass} ${sClass}`;
+                    div.innerHTML = `<span class="msg-time">${formatMsgDate(m.time)}</span>` + content + tickHtml + reactions;
                     
-                    const bubble = div.querySelector(`.${bClass}`);
-                    bubble.oncontextmenu = (e) => showContextMenu(e, id, m.text, m.type, m.pinned);
-                    bubble.onclick = () => {
+                    div.oncontextmenu = (e) => showContextMenu(e, id, m.text, m.type);
+                    div.onclick = () => {
                         if(m.type === 'circle') {
-                            bubble.classList.toggle('fullscreen');
-                            const v = bubble.querySelector('video');
-                            if(bubble.classList.contains('fullscreen')) { v.muted = false; v.play(); } else { v.muted = true; }
-                        } else if(m.type === 'audio') { bubble.querySelector('audio').play(); }
+                            div.classList.toggle('fullscreen');
+                            const v = div.querySelector('video');
+                            if(div.classList.contains('fullscreen')) { v.muted = false; v.play(); } else { v.muted = true; }
+                        } else if(m.type === 'audio') { div.querySelector('audio').play(); }
                     };
                     area.appendChild(div);
                 });
                 area.scrollTop = area.scrollHeight;
             });
+        }
+
+        function goToPinned() {
+            const el = document.getElementById('msg-' + state.pinnedId);
+            if(el) el.scrollIntoView({behavior: "smooth"});
+        }
+
+        async function pinMessage() {
+            const cid = [state.user.nick, state.activeChat].sort().join('_');
+            await DB.ref(`kolo_msgs/${cid}`).once('value', s => {
+                if(s.val()) Object.keys(s.val()).forEach(id => DB.ref(`kolo_msgs/${cid}/${id}/pinned`).set(null));
+            });
+            await DB.ref(`kolo_msgs/${cid}/${state.selectedMsgId}/pinned`).set(true);
+            hideMenu();
+        }
+
+        async function addReaction(emoji) {
+            const cid = [state.user.nick, state.activeChat].sort().join('_');
+            await DB.ref(`kolo_msgs/${cid}/${state.selectedMsgId}/reactions/${emoji}`).set(true);
+            hideMenu();
+        }
+
+        async function openGroupCreate() {
+            document.getElementById('group-create-panel').classList.remove('hidden');
+            const list = document.getElementById('group-user-list');
+            list.innerHTML = '';
+            state.groupSelection = [];
+            const snap = await DB.ref('kolo_users').once('value');
+            if(snap.val()) {
+                Object.values(snap.val()).forEach(u => {
+                    if(u.nick !== state.user.nick) {
+                        const div = document.createElement('div');
+                        div.className = "p-4 bg-[#111] rounded-2xl flex items-center gap-4 border border-transparent";
+                        div.innerHTML = `<img src="${u.avatar}" class="w-10 h-10 rounded-full"><p>${u.name}</p>`;
+                        div.onclick = () => {
+                            div.classList.toggle('border-cyan-400');
+                            if(state.groupSelection.includes(u.nick)) state.groupSelection = state.groupSelection.filter(n => n !== u.nick);
+                            else state.groupSelection.push(u.nick);
+                        };
+                        list.appendChild(div);
+                    }
+                });
+            }
+        }
+
+        async function finishGroupCreate() {
+            const name = document.getElementById('group-name-input').value;
+            if(!name || state.groupSelection.length === 0) return;
+            const gid = "group_" + Date.now();
+            const groupData = { name: name, avatar: "https://api.dicebear.com/7.x/initials/svg?seed="+name, members: [state.user.nick, ...state.groupSelection] };
+            await DB.ref('kolo_users/' + gid).set(groupData);
+            await DB.ref(`kolo_chats/${state.user.nick}/${gid}`).set({ last: "Групу створено", time: Date.now() });
+            state.groupSelection.forEach(async n => {
+                await DB.ref(`kolo_chats/${n}/${gid}`).set({ last: "Групу створено", time: Date.now() });
+            });
+            document.getElementById('group-create-panel').classList.add('hidden');
         }
 
         async function startRecording(type) {
@@ -472,9 +593,7 @@
                     sec++;
                     let s = sec.toString().padStart(2, '0');
                     document.getElementById('rec-timer').innerText = `00:${s}`;
-                    if(sec >= 25) {
-                        stopRecording(true);
-                    }
+                    if(sec >= 25) stopRecording(true);
                 }, 1000);
             } catch(e) { alert("Доступ заборонено"); }
         }
@@ -517,24 +636,26 @@
             document.getElementById('p-avatar').src = u.avatar || "";
             document.getElementById('p-banner').src = u.banner || "";
             document.getElementById('p-name-input').value = u.name;
-            document.getElementById('p-phone').innerText = u.phone;
-            document.getElementById('p-nick-full').innerText = "@" + u.nick;
+            document.getElementById('p-phone').innerText = u.phone || "GROUP";
+            document.getElementById('p-nick-full').innerText = u.nick ? "@" + u.nick : "GROUP";
             document.getElementById('p-bio-input').value = u.bio || "";
             document.getElementById('p-bday-input').value = u.bday || "";
-            document.getElementById('p-age-calc').innerText = "(" + calculateAge(u.bday) + ")";
-            document.getElementById('p-last-seen-status').innerText = formatTimeAgo(u.lastSeen).toUpperCase();
+            document.getElementById('p-age-calc').innerText = u.bday ? "(" + calculateAge(u.bday) + ")" : "";
+            document.getElementById('p-last-seen-status').innerText = u.lastSeen ? formatTimeAgo(u.lastSeen).toUpperCase() : "ГРУПА";
             
             const myStories = document.getElementById('p-my-stories');
             myStories.innerHTML = '';
-            DB.ref(`kolo_stories_db/${u.nick}`).once('value', snap => {
-                if(snap.val()) Object.values(snap.val()).forEach(s => {
-                    const div = document.createElement('div');
-                    div.className = "profile-story-item";
-                    div.innerHTML = s.type === 'video' ? `<video src="${s.src}" muted class="w-full h-full object-cover"></video>` : `<img src="${s.src}" class="w-full h-full object-cover">`;
-                    div.onclick = () => viewUserStories(u.nick);
-                    myStories.appendChild(div);
+            if(u.nick) {
+                DB.ref(`kolo_stories_db/${u.nick}`).once('value', snap => {
+                    if(snap.val()) Object.values(snap.val()).forEach(s => {
+                        const div = document.createElement('div');
+                        div.className = "profile-story-item";
+                        div.innerHTML = s.type === 'video' ? `<video src="${s.src}" muted class="w-full h-full object-cover"></video>` : `<img src="${s.src}" class="w-full h-full object-cover">`;
+                        div.onclick = () => viewUserStories(u.nick);
+                        myStories.appendChild(div);
+                    });
                 });
-            });
+            }
         }
 
         function viewUserStories(nick) {
@@ -607,52 +728,45 @@
         function sendMsg() {
             const i = document.getElementById('msg-input'); 
             if(!i.value.trim() || !state.activeChat) return;
-            const cid = [state.user.nick, state.activeChat].sort().join('_');
-            const msg = { sender: state.user.nick, text: i.value, type: 'text', time: Date.now(), read: false, pinned: false };
+            const cid = state.activeChat.startsWith('group_') ? state.activeChat : [state.user.nick, state.activeChat].sort().join('_');
+            const msg = { sender: state.user.nick, text: i.value, type: 'text', time: Date.now(), read: false };
             DB.ref('kolo_msgs/'+cid).push(msg);
-            DB.ref(`kolo_chats/${state.user.nick}/${state.activeChat}`).set({ last: i.value, time: Date.now() });
-            DB.ref(`kolo_chats/${state.activeChat}/${state.user.nick}`).set({ last: i.value, time: Date.now() });
+            
+            if(state.activeChat.startsWith('group_')) {
+                DB.ref('kolo_users/'+state.activeChat).once('value', s => {
+                    s.val().members.forEach(m => DB.ref(`kolo_chats/${m}/${state.activeChat}`).set({ last: i.value, time: Date.now() }));
+                });
+            } else {
+                DB.ref(`kolo_chats/${state.user.nick}/${state.activeChat}`).set({ last: i.value, time: Date.now() });
+                DB.ref(`kolo_chats/${state.activeChat}/${state.user.nick}`).set({ last: i.value, time: Date.now() });
+            }
             i.value = '';
         }
 
         async function sendMedia(data, type, target = state.activeChat) {
-            const cid = [state.user.nick, target].sort().join('_');
-            const msg = { sender: state.user.nick, text: data, type: type, time: Date.now(), read: false, pinned: false };
+            const cid = target.startsWith('group_') ? target : [state.user.nick, target].sort().join('_');
+            const msg = { sender: state.user.nick, text: data, type: type, time: Date.now(), read: false };
             await DB.ref('kolo_msgs/'+cid).push(msg);
             const label = type === 'circle' ? '🎥 Кружечок' : '🎤 Голосове';
-            DB.ref(`kolo_chats/${state.user.nick}/${target}`).set({ last: label, time: Date.now() });
-            DB.ref(`kolo_chats/${target}/${state.user.nick}`).set({ last: label, time: Date.now() });
+            if(target.startsWith('group_')) {
+                DB.ref('kolo_users/'+target).once('value', s => {
+                    s.val().members.forEach(m => DB.ref(`kolo_chats/${m}/${target}`).set({ last: label, time: Date.now() }));
+                });
+            } else {
+                DB.ref(`kolo_chats/${state.user.nick}/${target}`).set({ last: label, time: Date.now() });
+                DB.ref(`kolo_chats/${target}/${state.user.nick}`).set({ last: label, time: Date.now() });
+            }
         }
 
-        function showContextMenu(e, id, text, type, pinned) {
+        function showContextMenu(e, id, text, type) {
             e.preventDefault();
             state.selectedMsgId = id;
             state.selectedMsgText = text;
             state.selectedMsgType = type;
-            state.selectedMsgPinned = pinned;
             const menu = document.getElementById('msg-context-menu');
-            document.getElementById('pin-btn-ctx').innerText = pinned ? "Відкріпити" : "Закріпити";
             menu.style.display = 'block';
             menu.style.left = Math.min(e.pageX, window.innerWidth - 150) + 'px';
-            menu.style.top = Math.min(e.pageY, window.innerHeight - 150) + 'px';
-        }
-
-        async function togglePinMsg() {
-            const cid = [state.user.nick, state.activeChat].sort().join('_');
-            await DB.ref(`kolo_msgs/${cid}/${state.selectedMsgId}`).update({ pinned: !state.selectedMsgPinned });
-            hideMenu();
-        }
-
-        async function cleanOldMessages() {
-            if(!confirm('Видалити повідомлення старіші за 3 тижні? Закріплені залишаться.')) return;
-            const cid = [state.user.nick, state.activeChat].sort().join('_');
-            const snap = await DB.ref(`kolo_msgs/${cid}`).once('value');
-            const limit = Date.now() - (21 * 24 * 60 * 60 * 1000);
-            if(snap.val()) {
-                Object.entries(snap.val()).forEach(([id, m]) => {
-                    if(m.time < limit && !m.pinned) DB.ref(`kolo_msgs/${cid}/${id}`).remove();
-                });
-            }
+            menu.style.top = Math.min(e.pageY, window.innerHeight - 250) + 'px';
         }
 
         async function openForward() {
@@ -680,7 +794,7 @@
         function hideMenu() { document.getElementById('msg-context-menu').style.display = 'none'; }
         
         async function handleDeleteMsg() {
-            const cid = [state.user.nick, state.activeChat].sort().join('_');
+            const cid = state.activeChat.startsWith('group_') ? state.activeChat : [state.user.nick, state.activeChat].sort().join('_');
             await DB.ref(`kolo_msgs/${cid}/${state.selectedMsgId}`).remove();
             hideMenu();
         }
@@ -706,12 +820,12 @@
                     const uSnap = await DB.ref('kolo_users/'+nick).once('value');
                     const u = uSnap.val();
                     if(u) {
-                        const cid = [state.user.nick, nick].sort().join('_');
+                        const cid = nick.startsWith('group_') ? nick : [state.user.nick, nick].sort().join('_');
                         DB.ref(`kolo_msgs/${cid}`).once('value', ms => {
                             let unread = 0;
                             if(ms.val()) Object.values(ms.val()).forEach(m => { if(m.sender !== state.user.nick && !m.read) unread++; });
                             const b = unread > 0 ? `<span class="unread-badge">${unread}</span>` : '';
-                            list.innerHTML += `<div onclick="openChat('${u.nick}','${u.avatar}','${u.name}')" class="flex items-center gap-4 p-4 bg-[#111] rounded-[24px]"><img src="${u.avatar}" class="w-14 h-14 rounded-full object-cover"><div class="flex-1 font-bold"><h4>${u.name}</h4><p class="text-xs text-gray-500 truncate">${data.last}</p></div>${b}</div>`;
+                            list.innerHTML += `<div onclick="openChat('${nick}','${u.avatar}','${u.name}')" class="flex items-center gap-4 p-4 bg-[#111] rounded-[24px]"><img src="${u.avatar}" class="w-14 h-14 rounded-full object-cover"><div class="flex-1 font-bold"><h4>${u.name}</h4><p class="text-xs text-gray-500 truncate">${data.last}</p></div>${b}</div>`;
                         });
                     }
                 }
@@ -729,7 +843,7 @@
             results.innerHTML = ''; if(val.length < 2) return;
             const snap = await DB.ref('kolo_users').once('value');
             for(let id in snap.val()) {
-                if(id.includes(val.toLowerCase()) && id !== state.user.nick) {
+                if(id.includes(val.toLowerCase()) && id !== state.user.nick && !id.startsWith('group_')) {
                     const u = snap.val()[id];
                     results.innerHTML += `<div class="p-4 bg-[#111] rounded-2xl flex items-center gap-4" onclick="viewForeignProfile('${u.nick}')"><img src="${u.avatar}" class="w-12 h-12 rounded-full"><div><h4 class="font-bold">${u.name}</h4><p class="text-xs text-cyan-400">@${u.nick}</p></div></div>`;
                 }
@@ -764,8 +878,7 @@
         }
 
         async function deleteFullChat() {
-            if(!confirm('Повністю очистити історію листування?')) return;
-            const cid = [state.user.nick, state.activeChat].sort().join('_');
+            const cid = state.activeChat.startsWith('group_') ? state.activeChat : [state.user.nick, state.activeChat].sort().join('_');
             await DB.ref(`kolo_msgs/${cid}`).remove();
         }
 
@@ -779,6 +892,7 @@
 
         window.onload = () => {
             if(state.user) {
+                document.getElementById('bio-lock').classList.remove('hidden');
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('app-ui').classList.remove('hidden');
                 document.getElementById('menu-name').innerText = state.user.name;
