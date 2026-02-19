@@ -57,8 +57,12 @@
         .voice-bubble { display: flex; align-items: center; gap: 10px; min-width: 150px; }
         .wave-icon { width: 24px; height: 24px; fill: currentColor; }
 
-        .story-controls { position: absolute; bottom: 40px; left: 0; right: 0; display: flex; justify-content: center; gap: 20px; z-index: 100; }
+        .story-controls { position: absolute; bottom: 40px; left: 0; right: 0; display: flex; justify: center; gap: 20px; z-index: 100; }
         .story-btn { background: rgba(255,255,255,0.2); backdrop-blur: 10px; padding: 15px; border-radius: 50%; font-size: 20px; }
+        
+        /* Новий стиль для профілю (сітка історій) */
+        .profile-story-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
+        .profile-story-item { aspect-ratio: 9/16; background: #111; border-radius: 15px; overflow: hidden; position: relative; border: 1px solid #222; }
     </style>
 </head>
 <body>
@@ -70,8 +74,7 @@
             <span id="story-owner-name" class="font-bold text-sm"></span>
             <button onclick="closeStories()" class="ml-auto text-3xl">✕</button>
         </div>
-        <div id="story-content" class="flex-1 flex items-center justify-center overflow-hidden">
-            </div>
+        <div id="story-content" class="flex-1 flex items-center justify-center overflow-hidden"></div>
         <div class="story-controls">
             <button onclick="likeStory()" class="story-btn">❤️ <span id="story-likes">0</span></button>
             <button onclick="dislikeStory()" class="story-btn">👎</button>
@@ -79,8 +82,11 @@
     </div>
 
     <div id="record-ui" class="record-overlay">
-        <div class="record-circle">
+        <div class="record-circle" id="rec-preview-container">
             <video id="record-preview" autoplay muted playsinline></video>
+            <div id="audio-visual" class="hidden flex items-center justify-center h-full">
+                <div class="w-20 h-20 bg-cyan-400 rounded-full animate-pulse flex items-center justify-center">🎤</div>
+            </div>
         </div>
         <div class="text-center">
             <p id="rec-timer" class="text-2xl font-black mb-4">00:00</p>
@@ -88,7 +94,7 @@
                 <button onclick="stopRecording(false)" class="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center text-2xl">✕</button>
                 <button onclick="stopRecording(true)" class="w-20 h-20 bg-cyan-400 rounded-full flex items-center justify-center text-black text-3xl">➤</button>
             </div>
-            <p id="rec-status-label" class="mt-6 text-gray-400 font-bold uppercase tracking-widest text-xs">Запис відео-повідомлення</p>
+            <p id="rec-status-label" class="mt-6 text-gray-400 font-bold uppercase tracking-widest text-xs"></p>
         </div>
     </div>
 
@@ -103,7 +109,6 @@
             <input type="tel" id="auth-phone" placeholder="+380XXXXXXXXX" class="input-field text-center">
             <button onclick="checkUserAndSendOTP()" class="btn-primary">ПРОДОВЖИТИ</button>
         </div>
-
         <div id="reg-details" class="hidden space-y-4 max-w-md mx-auto w-full">
             <h2 class="text-xl font-black text-center mb-6">РЕЄСТРАЦІЯ</h2>
             <input type="text" id="reg-name" placeholder="Ім'я" class="input-field">
@@ -112,7 +117,6 @@
             <input type="date" id="reg-bday" class="input-field">
             <button onclick="sendOTP('new')" class="btn-primary">ОТРИМАТИ КОД</button>
         </div>
-
         <div id="otp-view" class="hidden space-y-8 text-center max-w-md mx-auto w-full">
             <h2 class="text-3xl font-black">ВВЕДІТЬ КОД</h2>
             <input type="text" id="otp-input" maxlength="6" class="w-full text-center text-6xl font-black bg-transparent border-b-4 border-cyan-400 outline-none text-cyan-400 tracking-widest">
@@ -145,7 +149,6 @@
             </div>
             <button onclick="toggleSearch(true)" class="text-xl">🔍</button>
         </header>
-
         <div class="flex gap-4 p-4 overflow-x-auto no-scrollbar border-b border-white/5">
             <div class="flex flex-col items-center gap-1" onclick="document.getElementById('file-story').click()">
                 <div class="story-circle" style="border-color: #333; border-style: dashed;"><span class="flex items-center justify-center h-full text-2xl">+</span></div>
@@ -154,13 +157,10 @@
             </div>
             <div id="stories-list" class="flex gap-4"></div>
         </div>
-
         <div id="chats-list" class="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar"></div>
-
         <button onclick="toggleSearch(true)" class="fixed bottom-28 right-6 w-14 h-14 bg-cyan-400 rounded-full flex items-center justify-center text-black shadow-lg shadow-cyan-400/30">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
         </button>
-
         <nav class="h-24 bg-black/90 border-t border-white/5 flex justify-around items-center px-6">
             <button onclick="location.reload()" class="text-cyan-400 flex flex-col items-center"><span class="text-2xl">💬</span><span class="text-[8px] font-black uppercase">Chats</span></button>
             <button onclick="viewMyProfile()" class="text-gray-600 flex flex-col items-center"><span class="text-2xl">👤</span><span class="text-[8px] font-black uppercase">Profile</span></button>
@@ -219,17 +219,12 @@
             
             <input type="text" id="p-name-input" class="text-3xl font-black italic mt-4 bg-transparent border-b border-white/10 text-center outline-none w-full">
             
-            <button onclick="document.getElementById('file-story').click()" class="mt-4 btn-primary py-2 px-6 text-[10px] w-auto bg-white/10 text-white border border-white/20">ДОДАТИ ІСТОРІЮ</button>
-
             <div id="p-friend-status" class="mt-4 hidden">
                 <button onclick="toggleFriend()" id="btn-friend" class="btn-primary py-2 px-6 text-xs w-auto">СТАТИ ДРУЗЯМИ</button>
                 <button onclick="startChatFromProfile()" class="btn-primary py-2 px-6 text-xs w-auto bg-white ml-2">MESSAGE</button>
             </div>
 
-            <div class="w-full mt-10 space-y-4" id="p-stories-container">
-                <h4 class="font-black text-xs text-gray-500 uppercase">Історії користувача</h4>
-                <div id="p-my-stories" class="flex gap-2 overflow-x-auto no-scrollbar"></div>
-                
+            <div class="w-full mt-10 space-y-4">
                 <div class="p-6 bg-[#111] rounded-[28px] space-y-4">
                     <div><p id="p-phone" class="font-bold text-gray-400"></p><p class="text-[9px] text-gray-600 font-black">MOBILE</p></div>
                     <div><p id="p-nick-full" class="font-bold text-cyan-400"></p><p class="text-[9px] text-gray-600 font-black">USERNAME</p></div>
@@ -244,6 +239,14 @@
                         </div>
                         <p class="text-[9px] text-gray-600 font-black">BIRTHDAY</p>
                     </div>
+                </div>
+
+                <div class="pt-6 border-t border-white/5">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="font-black text-xs text-gray-500 uppercase">Історії користувача</h4>
+                        <button onclick="document.getElementById('file-story').click()" class="text-cyan-400 font-black text-[10px]">+ ДОДАТИ</button>
+                    </div>
+                    <div id="p-my-stories" class="profile-story-grid"></div>
                 </div>
             </div>
         </div>
@@ -277,7 +280,6 @@
             return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25)) + " років";
         }
 
-        // AUTH & STATUS
         async function checkUserAndSendOTP() {
             const phone = document.getElementById('auth-phone').value.trim();
             if(!phone) return;
@@ -316,7 +318,6 @@
             DB.ref(`kolo_status/${state.user.nick}`).set({ target: state.activeChat, text: text, time: Date.now() });
         }
 
-        // CHAT LOGIC
         function openChat(nick, av, name) {
             state.activeChat = nick;
             document.getElementById('chat-window').classList.remove('hidden');
@@ -349,47 +350,44 @@
                     div.className = `${cClass} ${bClass} ${sClass}`;
                     div.innerHTML = content;
                     
-                    let pressTimer;
-                    div.onmousedown = (e) => pressTimer = setTimeout(() => showContextMenu(e, id, m.text), 600);
-                    div.onmouseup = () => clearTimeout(pressTimer);
-                    div.ontouchstart = (e) => pressTimer = setTimeout(() => showContextMenu(e, id, m.text), 600);
-                    div.ontouchend = () => clearTimeout(pressTimer);
-
+                    div.oncontextmenu = (e) => showContextMenu(e, id, m.text);
                     div.onclick = () => {
                         if(m.type === 'circle') {
                             div.classList.toggle('fullscreen');
                             const v = div.querySelector('video');
-                            if(div.classList.contains('fullscreen')) { v.muted = false; v.play(); }
-                            else { v.muted = true; }
-                        } else if(m.type === 'audio') {
-                            div.querySelector('audio').play();
-                        }
+                            if(div.classList.contains('fullscreen')) { v.muted = false; v.play(); } else { v.muted = true; }
+                        } else if(m.type === 'audio') { div.querySelector('audio').play(); }
                     };
-                    
                     area.appendChild(div);
                 });
                 area.scrollTop = area.scrollHeight;
             });
         }
 
-        // RECORDING (120 SEC)
         async function startRecording(type) {
             const overlay = document.getElementById('record-ui');
             const preview = document.getElementById('record-preview');
+            const visual = document.getElementById('audio-visual');
             const label = document.getElementById('rec-status-label');
+            
+            // Скидання попереднього таймера
+            document.getElementById('rec-timer').innerText = "00:00";
+            
             label.innerText = type === 'video' ? "Запис відео-повідомлення" : "Запис аудіо-повідомлення";
             updateStatus(type === 'video' ? 'записує відео...' : 'записує голос...');
 
             try {
-                const constraints = type === 'video' ? { video: true, audio: true } : { audio: true };
+                const constraints = type === 'video' ? { video: { width: 480, height: 480 }, audio: true } : { audio: true };
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                if(type === 'video') { preview.srcObject = stream; overlay.style.display = 'flex'; }
                 
+                if(type === 'video') { preview.srcObject = stream; preview.classList.remove('hidden'); visual.classList.add('hidden'); }
+                else { preview.classList.add('hidden'); visual.classList.remove('hidden'); }
+                
+                overlay.style.display = 'flex';
                 state.mediaRecorder = new MediaRecorder(stream);
                 state.chunks = [];
                 state.mediaRecorder.ondataavailable = e => state.chunks.push(e.data);
                 state.mediaRecorder.start();
-                state.isRecording = true;
                 
                 let sec = 0;
                 state.timerInterval = setInterval(() => {
@@ -399,17 +397,17 @@
                     document.getElementById('rec-timer').innerText = `${m}:${s}`;
                     if(sec >= 120) stopRecording(true);
                 }, 1000);
-            } catch(e) { alert("Помилка доступу до медіа"); }
+            } catch(e) { alert("Помилка камери/мікрофона"); }
         }
 
         function stopRecording(send) {
             clearInterval(state.timerInterval);
-            document.getElementById('rec-timer').innerText = "00:00";
-            const type = state.mediaRecorder.stream.getVideoTracks().length > 0 ? 'circle' : 'audio';
+            const isVideo = state.mediaRecorder.stream.getVideoTracks().length > 0;
+            const type = isVideo ? 'circle' : 'audio';
             
             state.mediaRecorder.onstop = async () => {
                 if(send) {
-                    const blob = new Blob(state.chunks, { type: type === 'circle' ? 'video/mp4' : 'audio/webm' });
+                    const blob = new Blob(state.chunks, { type: isVideo ? 'video/mp4' : 'audio/webm' });
                     const reader = new FileReader();
                     reader.onload = () => sendMedia(reader.result, type);
                     reader.readAsDataURL(blob);
@@ -418,10 +416,8 @@
             };
             state.mediaRecorder.stop();
             document.getElementById('record-ui').style.display = 'none';
-            state.isRecording = false;
         }
 
-        // STORIES SYSTEM
         async function uploadStory(input) {
             const file = input.files[0];
             if(!file) return;
@@ -430,15 +426,34 @@
                 const id = Date.now();
                 const type = file.type.startsWith('video') ? 'video' : 'image';
                 await DB.ref(`kolo_stories_db/${state.user.nick}/${id}`).set({
-                    src: reader.result,
-                    type: type,
-                    time: id,
-                    likes: 0,
-                    owner: state.user.nick,
-                    ownerAv: state.user.avatar
+                    src: reader.result, type: type, time: id, likes: 0, owner: state.user.nick, ownerAv: state.user.avatar
                 });
+                if(state.viewingNick === state.user.nick) renderProfile(state.user);
             };
             reader.readAsDataURL(file);
+        }
+
+        function renderProfile(u) {
+            document.getElementById('p-avatar').src = u.avatar || "";
+            document.getElementById('p-banner').src = u.banner || "";
+            document.getElementById('p-name-input').value = u.name;
+            document.getElementById('p-phone').innerText = u.phone;
+            document.getElementById('p-nick-full').innerText = "@" + u.nick;
+            document.getElementById('p-bio-input').value = u.bio || "";
+            document.getElementById('p-bday-input').value = u.bday || "";
+            document.getElementById('p-age-calc').innerText = "(" + calculateAge(u.bday) + ")";
+            
+            const myStories = document.getElementById('p-my-stories');
+            myStories.innerHTML = '';
+            DB.ref(`kolo_stories_db/${u.nick}`).once('value', snap => {
+                if(snap.val()) Object.values(snap.val()).forEach(s => {
+                    const div = document.createElement('div');
+                    div.className = "profile-story-item";
+                    div.innerHTML = s.type === 'video' ? `<video src="${s.src}" muted class="w-full h-full object-cover"></video>` : `<img src="${s.src}" class="w-full h-full object-cover">`;
+                    div.onclick = () => viewUserStories(u.nick);
+                    myStories.appendChild(div);
+                });
+            });
         }
 
         function viewUserStories(nick) {
@@ -464,13 +479,10 @@
             const progressContainer = document.getElementById('story-progress-container');
             progressContainer.innerHTML = '';
             state.storyQueue.forEach((_, i) => {
-                const bar = document.createElement('div');
-                bar.className = 'progress-bar';
-                const fill = document.createElement('div');
-                fill.className = 'progress-fill';
+                const bar = document.createElement('div'); bar.className = 'progress-bar';
+                const fill = document.createElement('div'); fill.className = 'progress-fill';
                 if(i < state.currentStoryIndex) fill.style.width = '100%';
-                bar.appendChild(fill);
-                progressContainer.appendChild(bar);
+                bar.appendChild(fill); progressContainer.appendChild(bar);
             });
 
             clearTimeout(state.storyTimer);
@@ -479,17 +491,12 @@
             activeFill.style.transitionDuration = '5s';
 
             state.storyTimer = setTimeout(() => {
-                if(state.currentStoryIndex < state.storyQueue.length - 1) {
-                    state.currentStoryIndex++;
-                    showStory();
-                } else closeStories();
+                if(state.currentStoryIndex < state.storyQueue.length - 1) { state.currentStoryIndex++; showStory(); } 
+                else closeStories();
             }, 5000);
         }
 
-        function closeStories() {
-            document.getElementById('story-viewer').classList.add('hidden');
-            clearTimeout(state.storyTimer);
-        }
+        function closeStories() { document.getElementById('story-viewer').classList.add('hidden'); clearTimeout(state.storyTimer); }
 
         async function likeStory() {
             const s = state.storyQueue[state.currentStoryIndex];
@@ -498,13 +505,10 @@
         }
 
         function dislikeStory() {
-            if(state.currentStoryIndex < state.storyQueue.length - 1) {
-                state.currentStoryIndex++;
-                showStory();
-            } else closeStories();
+            if(state.currentStoryIndex < state.storyQueue.length - 1) { state.currentStoryIndex++; showStory(); } 
+            else closeStories();
         }
 
-        // APP CORE
         function sendMsg() {
             const i = document.getElementById('msg-input'); 
             if(!i.value.trim() || !state.activeChat) return;
@@ -536,17 +540,12 @@
         }
 
         function hideMenu() { document.getElementById('msg-context-menu').style.display = 'none'; }
-
         async function handleDeleteMsg() {
             const cid = [state.user.nick, state.activeChat].sort().join('_');
             await DB.ref(`kolo_msgs/${cid}/${state.selectedMsgId}`).remove();
             hideMenu();
         }
-
-        function copyMsgText() {
-            navigator.clipboard.writeText(state.selectedMsgText);
-            hideMenu();
-        }
+        function copyMsgText() { navigator.clipboard.writeText(state.selectedMsgText); hideMenu(); }
 
         function initListeners() {
             DB.ref('kolo_stories_db').on('value', snap => {
@@ -560,7 +559,6 @@
                     }
                 });
             });
-
             DB.ref(`kolo_chats/${state.user.nick}`).on('value', async snap => {
                 const list = document.getElementById('chats-list'); list.innerHTML = '';
                 if(!snap.val()) return;
@@ -586,10 +584,7 @@
             for(let id in snap.val()) {
                 if(id.includes(val.toLowerCase()) && id !== state.user.nick) {
                     const u = snap.val()[id];
-                    results.innerHTML += `<div class="p-4 bg-[#111] rounded-2xl flex items-center gap-4" onclick="viewForeignProfile('${u.nick}')">
-                        <img src="${u.avatar}" class="w-12 h-12 rounded-full object-cover">
-                        <div><h4 class="font-bold">${u.name}</h4><p class="text-xs text-cyan-400">@${u.nick}</p></div>
-                    </div>`;
+                    results.innerHTML += `<div class="p-4 bg-[#111] rounded-2xl flex items-center gap-4" onclick="viewForeignProfile('${u.nick}')"><img src="${u.avatar}" class="w-12 h-12 rounded-full object-cover"><div><h4 class="font-bold">${u.name}</h4><p class="text-xs text-cyan-400">@${u.nick}</p></div></div>`;
                 }
             }
         }
@@ -599,29 +594,6 @@
             const reader = new FileReader();
             reader.onload = () => sendMedia(reader.result, input.files[0].type.startsWith('image') ? 'image' : 'video');
             reader.readAsDataURL(input.files[0]);
-        }
-
-        function renderProfile(u) {
-            document.getElementById('p-avatar').src = u.avatar || "";
-            document.getElementById('p-banner').src = u.banner || "";
-            document.getElementById('p-name-input').value = u.name;
-            document.getElementById('p-phone').innerText = u.phone;
-            document.getElementById('p-nick-full').innerText = "@" + u.nick;
-            document.getElementById('p-bio-input').value = u.bio || "";
-            document.getElementById('p-bday-input').value = u.bday || "";
-            document.getElementById('p-age-calc').innerText = "(" + calculateAge(u.bday) + ")";
-            
-            const myStories = document.getElementById('p-my-stories');
-            myStories.innerHTML = '';
-            DB.ref(`kolo_stories_db/${u.nick}`).once('value', snap => {
-                if(snap.val()) Object.values(snap.val()).forEach(s => {
-                    const el = document.createElement('div');
-                    el.className = "w-20 h-32 bg-zinc-900 rounded-xl overflow-hidden flex-shrink-0 border border-white/10";
-                    el.innerHTML = s.type === 'video' ? `<video src="${s.src}" class="w-full h-full object-cover"></video>` : `<img src="${s.src}" class="w-full h-full object-cover">`;
-                    el.onclick = () => viewUserStories(u.nick);
-                    myStories.appendChild(el);
-                });
-            });
         }
 
         async function toggleFriend() {
