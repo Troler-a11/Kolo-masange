@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KOLO | FULL VERSION</title>
+    <title>KOLO | PRO VERSION</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
@@ -26,9 +26,9 @@
         .me { background: var(--bubble-me); color: black; align-self: flex-end; border-bottom-right-radius: 4px; }
         .them { background: #222; color: white; align-self: flex-start; border-bottom-left-radius: 4px; }
 
-        .video-note { width: 150px; height: 150px; border-radius: 50%; overflow: hidden; border: 2px solid var(--accent); background: #000; flex-shrink: 0; margin-bottom: 10px; position: relative; cursor: pointer; box-shadow: 0 0 15px rgba(0,229,255,0.2); transition: 0.3s; }
+        .video-note { width: 135px; height: 135px; border-radius: 50%; overflow: hidden; border: 2px solid var(--accent); background: #000; flex-shrink: 0; margin-bottom: 10px; position: relative; cursor: pointer; box-shadow: 0 0 15px rgba(0,229,255,0.2); transition: 0.3s; }
         .video-note video { width: 100%; height: 100%; object-fit: cover; }
-        .video-note.fullscreen { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(2); z-index: 5000; width: 250px; height: 250px; box-shadow: 0 0 100px rgba(0,0,0,0.9); border-width: 4px; }
+        .video-note.fullscreen { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.8); z-index: 5000; width: 200px; height: 200px; box-shadow: 0 0 100px rgba(0,0,0,0.9); border-width: 3px; }
 
         .record-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-blur: 10px; z-index: 3000; display: none; flex-direction: column; align-items: center; justify-content: center; }
         .record-circle { width: 280px; height: 280px; border-radius: 50%; border: 5px solid var(--accent); overflow: hidden; position: relative; margin-bottom: 30px; box-shadow: 0 0 50px var(--accent); }
@@ -38,8 +38,9 @@
         .story-circle:active { transform: scale(0.9); }
         .story-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid black; }
 
-        .story-viewer { fixed: inset 0; z-index: 6000; background: black; display: none; flex-direction: column; }
-        .story-progress { display: flex; gap: 2px; padding: 10px; position: absolute; top: 0; width: 100%; z-index: 10; }
+        .story-viewer { position: fixed; inset: 0; z-index: 6000; background: black; display: none; flex-direction: column; }
+        .story-side-click { position: absolute; top: 0; bottom: 0; width: 30%; z-index: 30; }
+        .story-progress { display: flex; gap: 2px; padding: 10px; position: absolute; top: 0; width: 100%; z-index: 40; }
         .progress-bar { height: 2px; background: rgba(255,255,255,0.3); flex: 1; overflow: hidden; }
         .progress-fill { height: 100%; background: white; width: 0%; transition: width linear; }
 
@@ -51,33 +52,46 @@
         @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
         .custom-menu { position: fixed; background: #222; border-radius: 15px; padding: 8px; z-index: 5000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #444; }
-        .custom-menu button { display: block; width: 100%; text-align: left; padding: 10px 20px; color: white; font-weight: bold; font-size: 14px; }
+        .custom-menu button { display: block; width: 100%; text-align: left; padding: 10px 20px; color: white; font-weight: bold; font-size: 12px; border-bottom: 1px solid #333; }
+        .custom-menu button:last-child { border-bottom: none; }
         .custom-menu button.del { color: #ff4444; }
 
         .voice-bubble { display: flex; align-items: center; gap: 10px; min-width: 150px; }
         .wave-icon { width: 24px; height: 24px; fill: currentColor; }
 
-        .story-controls { position: absolute; bottom: 40px; left: 0; right: 0; display: flex; justify: center; gap: 20px; z-index: 100; }
-        .story-btn { background: rgba(255,255,255,0.2); backdrop-blur: 10px; padding: 15px; border-radius: 50%; font-size: 20px; }
+        .story-controls { position: absolute; bottom: 40px; left: 0; right: 0; display: flex; justify-content: center; gap: 20px; z-index: 100; }
+        .story-btn { background: rgba(255,255,255,0.15); backdrop-blur: 15px; padding: 12px 20px; border-radius: 30px; font-size: 14px; font-weight: 900; border: 1px solid rgba(255,255,255,0.1); }
         
-        /* Новий стиль для профілю (сітка історій) */
         .profile-story-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
         .profile-story-item { aspect-ratio: 9/16; background: #111; border-radius: 15px; overflow: hidden; position: relative; border: 1px solid #222; }
+        
+        #forward-list { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 7000; padding: 20px; display: none; }
+        .stat-badge { background: #1a1a1a; padding: 10px 20px; border-radius: 20px; text-align: center; border: 1px solid #333; }
     </style>
 </head>
 <body>
 
-    <div id="story-viewer" class="fixed inset-0 z-[6000] bg-black hidden flex flex-col">
+    <div id="forward-list" class="flex flex-col">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-black">ПЕРЕСЛАТИ</h2>
+            <button onclick="document.getElementById('forward-list').style.display='none'" class="text-2xl">✕</button>
+        </div>
+        <div id="forward-targets" class="space-y-3 overflow-y-auto flex-1 no-scrollbar"></div>
+    </div>
+
+    <div id="story-viewer" class="story-viewer">
         <div class="story-progress" id="story-progress-container"></div>
-        <div class="flex items-center p-4 absolute top-4 left-0 right-0 z-20">
+        <div class="story-side-click left-0" onclick="prevStory()"></div>
+        <div class="story-side-click right-0" style="left:70%" onclick="nextStory()"></div>
+        <div class="flex items-center p-4 absolute top-8 left-0 right-0 z-[50]">
             <img id="story-owner-av" class="w-10 h-10 rounded-full border-2 border-cyan-400 mr-3">
             <span id="story-owner-name" class="font-bold text-sm"></span>
-            <button onclick="closeStories()" class="ml-auto text-3xl">✕</button>
+            <button onclick="closeStories()" class="ml-auto text-3xl z-[60]">✕</button>
         </div>
         <div id="story-content" class="flex-1 flex items-center justify-center overflow-hidden"></div>
         <div class="story-controls">
-            <button onclick="likeStory()" class="story-btn">❤️ <span id="story-likes">0</span></button>
-            <button onclick="dislikeStory()" class="story-btn">👎</button>
+            <button onclick="likeStory()" class="story-btn text-cyan-400">🔥 <span id="story-likes">0</span></button>
+            <button id="story-del-btn" onclick="deleteStoryFromView()" class="story-btn text-red-500 hidden">ВИДАЛИТИ</button>
         </div>
     </div>
 
@@ -85,166 +99,163 @@
         <div class="record-circle" id="rec-preview-container">
             <video id="record-preview" autoplay muted playsinline></video>
             <div id="audio-visual" class="hidden flex items-center justify-center h-full">
-                <div class="w-20 h-20 bg-cyan-400 rounded-full animate-pulse flex items-center justify-center">🎤</div>
+                <div class="w-20 h-20 bg-cyan-400 rounded-full animate-pulse flex items-center justify-center text-3xl">🎤</div>
             </div>
         </div>
         <div class="text-center">
-            <p id="rec-timer" class="text-2xl font-black mb-4">00:00</p>
+            <p id="rec-timer" class="text-2xl font-black mb-4 text-cyan-400">00:00</p>
             <div class="flex gap-6">
                 <button onclick="stopRecording(false)" class="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center text-2xl">✕</button>
-                <button onclick="stopRecording(true)" class="w-20 h-20 bg-cyan-400 rounded-full flex items-center justify-center text-black text-3xl">➤</button>
+                <button onclick="stopRecording(true)" class="w-20 h-20 bg-cyan-400 rounded-full flex items-center justify-center text-black text-3xl font-black">➤</button>
             </div>
-            <p id="rec-status-label" class="mt-6 text-gray-400 font-bold uppercase tracking-widest text-xs"></p>
+            <p id="rec-status-label" class="mt-6 text-gray-400 font-bold uppercase tracking-widest text-[10px]"></p>
         </div>
     </div>
 
     <div id="msg-context-menu" class="custom-menu">
         <button onclick="copyMsgText()">Скопіювати</button>
-        <button class="del" onclick="handleDeleteMsg()">Видалити для всіх</button>
+        <button onclick="openForwardMenu()">Переслати</button>
+        <button class="del" onclick="handleDeleteMsg()">Видалити</button>
     </div>
 
     <div id="auth-screen" class="fixed inset-0 z-[2000] bg-black p-8 flex flex-col justify-center overflow-y-auto">
         <div id="auth-init" class="space-y-6 max-w-md mx-auto w-full text-center">
-            <h1 class="text-5xl font-black italic tracking-tighter mb-10">KOLO<span class="text-cyan-400">.</span></h1>
-            <input type="tel" id="auth-phone" placeholder="+380XXXXXXXXX" class="input-field text-center">
+            <h1 class="text-6xl font-black italic tracking-tighter mb-10">KOLO<span class="text-cyan-400">.</span></h1>
+            <input type="tel" id="auth-phone" placeholder="+380XXXXXXXXX" class="input-field text-center font-black">
             <button onclick="checkUserAndSendOTP()" class="btn-primary">ПРОДОВЖИТИ</button>
         </div>
         <div id="reg-details" class="hidden space-y-4 max-w-md mx-auto w-full">
-            <h2 class="text-xl font-black text-center mb-6">РЕЄСТРАЦІЯ</h2>
-            <input type="text" id="reg-name" placeholder="Ім'я" class="input-field">
+            <h2 class="text-xl font-black text-center mb-6 text-cyan-400">СТВОРИТИ ПРОФІЛЬ</h2>
+            <input type="text" id="reg-name" placeholder="Твоє ім'я" class="input-field">
             <input type="text" id="reg-nick" placeholder="@username" class="input-field">
-            <input type="email" id="reg-email" placeholder="Email для коду" class="input-field">
+            <input type="email" id="reg-email" placeholder="Email (для коду)" class="input-field">
             <input type="date" id="reg-bday" class="input-field">
             <button onclick="sendOTP('new')" class="btn-primary">ОТРИМАТИ КОД</button>
         </div>
         <div id="otp-view" class="hidden space-y-8 text-center max-w-md mx-auto w-full">
-            <h2 class="text-3xl font-black">ВВЕДІТЬ КОД</h2>
+            <h2 class="text-3xl font-black">ПІДТВЕРДЖЕННЯ</h2>
             <input type="text" id="otp-input" maxlength="6" class="w-full text-center text-6xl font-black bg-transparent border-b-4 border-cyan-400 outline-none text-cyan-400 tracking-widest">
-            <button onclick="verifySession()" class="btn-primary">ПІДТВЕРДИТИ</button>
+            <button onclick="verifySession()" class="btn-primary">УВІЙТИ</button>
         </div>
     </div>
 
     <div id="side-menu" class="fixed inset-0 side-menu">
-        <div class="absolute inset-0 bg-black/70 backdrop-blur-md" onclick="toggleMenu()"></div>
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="toggleMenu()"></div>
         <div class="relative w-4/5 h-full bg-[#0a0a0a] p-8 border-r border-white/5 flex flex-col">
             <div class="flex flex-col gap-4 mb-10 pb-6 border-b border-white/5" onclick="viewMyProfile(); toggleMenu()">
-                <img id="menu-avatar" class="w-16 h-16 rounded-full object-cover border-2 border-cyan-400">
-                <div><h3 id="menu-name" class="font-black italic"></h3><p id="menu-nick" class="text-cyan-400 text-xs"></p></div>
+                <img id="menu-avatar" class="w-20 h-20 rounded-full object-cover border-2 border-cyan-400">
+                <div><h3 id="menu-name" class="text-xl font-black italic"></h3><p id="menu-nick" class="text-cyan-400 font-bold text-sm"></p></div>
             </div>
             <nav class="space-y-6 flex-1">
-                <button onclick="viewMyProfile(); toggleMenu()" class="block w-full text-left font-bold">👤 Мій профіль</button>
-                <button onclick="document.getElementById('file-story').click(); toggleMenu()" class="block w-full text-left font-bold">📸 Додати історію</button>
+                <button onclick="viewMyProfile(); toggleMenu()" class="block w-full text-left font-bold text-lg italic">👤 Мій профіль</button>
+                <button onclick="document.getElementById('file-story').click(); toggleMenu()" class="block w-full text-left font-bold text-lg italic">📸 Додати історію</button>
             </nav>
             <div class="space-y-4 pt-6 border-t border-white/5">
-                <button onclick="logout()" class="block w-full text-left font-bold text-red-500">🚪 Вийти</button>
+                <button onclick="logout()" class="block w-full text-left font-black text-red-500 uppercase tracking-tighter">🚪 Вийти з акаунту</button>
             </div>
         </div>
     </div>
 
     <div id="app-ui" class="hidden h-full flex flex-col">
-        <header class="p-6 flex justify-between items-center border-b border-white/5 bg-black/80 backdrop-blur-lg">
+        <header class="p-6 flex justify-between items-center border-b border-white/5 bg-black/80 backdrop-blur-lg z-50">
             <div class="flex items-center gap-4">
                 <button onclick="toggleMenu()" class="text-2xl">☰</button>
-                <h2 class="text-2xl font-black italic">KOLO</h2>
+                <h2 class="text-2xl font-black italic tracking-tighter">KOLO<span class="text-cyan-400">.</span></h2>
             </div>
             <button onclick="toggleSearch(true)" class="text-xl">🔍</button>
         </header>
         <div class="flex gap-4 p-4 overflow-x-auto no-scrollbar border-b border-white/5">
             <div class="flex flex-col items-center gap-1" onclick="document.getElementById('file-story').click()">
-                <div class="story-circle" style="border-color: #333; border-style: dashed;"><span class="flex items-center justify-center h-full text-2xl">+</span></div>
-                <span class="text-[9px] font-bold text-gray-500">Ваша</span>
+                <div class="story-circle" style="border-color: #333; border-style: dashed;"><span class="flex items-center justify-center h-full text-2xl font-black text-gray-400">+</span></div>
+                <span class="text-[9px] font-bold text-gray-600">Додати</span>
                 <input type="file" id="file-story" class="hidden" accept="image/*,video/*" onchange="uploadStory(this)">
             </div>
             <div id="stories-list" class="flex gap-4"></div>
         </div>
         <div id="chats-list" class="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar"></div>
-        <button onclick="toggleSearch(true)" class="fixed bottom-28 right-6 w-14 h-14 bg-cyan-400 rounded-full flex items-center justify-center text-black shadow-lg shadow-cyan-400/30">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+        <button onclick="toggleSearch(true)" class="fixed bottom-28 right-6 w-16 h-16 bg-cyan-400 rounded-full flex items-center justify-center text-black shadow-2xl shadow-cyan-400/40 z-40">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
         </button>
-        <nav class="h-24 bg-black/90 border-t border-white/5 flex justify-around items-center px-6">
-            <button onclick="location.reload()" class="text-cyan-400 flex flex-col items-center"><span class="text-2xl">💬</span><span class="text-[8px] font-black uppercase">Chats</span></button>
-            <button onclick="viewMyProfile()" class="text-gray-600 flex flex-col items-center"><span class="text-2xl">👤</span><span class="text-[8px] font-black uppercase">Profile</span></button>
+        <nav class="h-24 bg-black/95 border-t border-white/5 flex justify-around items-center px-6">
+            <button onclick="location.reload()" class="text-cyan-400 flex flex-col items-center"><span class="text-2xl">💬</span><span class="text-[8px] font-black uppercase mt-1">Чат</span></button>
+            <button onclick="viewMyProfile()" class="text-gray-500 flex flex-col items-center"><span class="text-2xl">👤</span><span class="text-[8px] font-black uppercase mt-1">Профіль</span></button>
         </nav>
     </div>
 
     <div id="search-panel" class="hidden fixed inset-0 z-[1500] bg-black p-6 flex flex-col">
         <div class="flex items-center gap-4 mb-8">
             <button onclick="toggleSearch(false)" class="text-2xl">←</button>
-            <input type="text" id="search-input" oninput="searchUsers(this.value)" placeholder="Пошук за нікнеймом..." class="input-field flex-1">
+            <input type="text" id="search-input" oninput="searchUsers(this.value)" placeholder="Пошук за @ніком..." class="input-field flex-1 font-bold">
         </div>
         <div id="search-results" class="space-y-4 overflow-y-auto flex-1 no-scrollbar"></div>
     </div>
 
     <div id="chat-window" class="hidden fixed inset-0 z-[1600] bg-black flex flex-col">
-        <header class="p-6 bg-black border-b border-white/5 flex items-center gap-4">
-            <button onclick="closeChat()" class="text-cyan-400 text-2xl">←</button>
-            <img id="chat-head-av" class="w-10 h-10 rounded-full object-cover" onclick="viewForeignProfile(state.activeChat)">
-            <div class="flex-1" onclick="viewForeignProfile(state.activeChat)"><h3 id="chat-head-name" class="font-black text-sm"></h3><p id="chat-status" class="text-[9px] text-cyan-500">OFFLINE</p></div>
-            <button onclick="deleteFullChat()" class="text-red-500 text-[10px] font-black">CLEAR</button>
+        <header class="p-6 bg-black/90 border-b border-white/5 flex items-center gap-4">
+            <button onclick="closeChat()" class="text-cyan-400 text-3xl font-black">←</button>
+            <img id="chat-head-av" class="w-11 h-11 rounded-full object-cover border-2 border-white/5" onclick="viewForeignProfile(state.activeChat)">
+            <div class="flex-1" onclick="viewForeignProfile(state.activeChat)"><h3 id="chat-head-name" class="font-black text-sm"></h3><p id="chat-status" class="text-[9px] text-cyan-500 font-black">ONLINE</p></div>
+            <button onclick="deleteFullChat()" class="text-red-500 text-[10px] font-black border border-red-500/30 px-3 py-1 rounded-full">CLEAR</button>
         </header>
         <div id="messages-area" class="flex-1 overflow-y-auto p-6 flex flex-col no-scrollbar" onclick="hideMenu()"></div>
         <footer class="p-4 bg-black border-t border-white/5 flex flex-col gap-3">
             <div class="flex gap-2 items-center">
-                <button id="rec-btn" onclick="startRecording('video')" class="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center">
+                <button onclick="startRecording('video')" class="w-12 h-12 bg-[#111] rounded-2xl flex items-center justify-center text-cyan-400">
                     <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/><circle cx="12" cy="12" r="5"/></svg>
                 </button>
-                <button onclick="startRecording('audio')" class="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center">
+                <button onclick="startRecording('audio')" class="w-12 h-12 bg-[#111] rounded-2xl flex items-center justify-center text-gray-400">
                     <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
                 </button>
-                <button onclick="document.getElementById('chat-file').click()" class="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center">
+                <button onclick="document.getElementById('chat-file').click()" class="w-12 h-12 bg-[#111] rounded-2xl flex items-center justify-center text-gray-400">
                     <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                 </button>
                 <input type="file" id="chat-file" class="hidden" accept="image/*,video/*" onchange="uploadChatFile(this)">
-                <input type="text" id="msg-input" placeholder="Повідомлення..." class="flex-1 input-field" oninput="updateStatus('пише...')">
-                <button onclick="sendMsg()" class="w-14 h-12 bg-cyan-400 rounded-2xl flex items-center justify-center text-black font-black">
-                     <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-                </button>
+                <input type="text" id="msg-input" placeholder="Твій меседж..." class="flex-1 input-field font-bold" oninput="updateStatus('пише...')">
+                <button onclick="sendMsg()" class="w-14 h-12 bg-cyan-400 rounded-2xl flex items-center justify-center text-black font-black">➤</button>
             </div>
         </footer>
     </div>
 
     <div id="profile-page" class="hidden fixed inset-0 z-[1700] bg-black overflow-y-auto no-scrollbar">
-        <button onclick="togglePage('profile', false)" class="fixed top-6 left-6 z-50 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center">←</button>
+        <button onclick="togglePage('profile', false)" class="fixed top-6 left-6 z-50 w-10 h-10 bg-black/60 rounded-full flex items-center justify-center font-black">←</button>
         <div class="relative">
-            <img id="p-banner" class="profile-banner" src="https://images.unsplash.com/photo-1557683316-973673baf926">
+            <img id="p-banner" class="profile-banner">
             <input type="file" id="file-banner" class="hidden" onchange="uploadMedia(this, 'banner')">
-            <button id="p-edit-banner" onclick="document.getElementById('file-banner').click()" class="absolute bottom-4 right-4 bg-black/50 p-2 rounded-full">📷</button>
+            <button id="p-edit-banner" onclick="document.getElementById('file-banner').click()" class="absolute bottom-4 right-4 bg-black/70 p-3 rounded-full text-xs">📷 BANNER</button>
         </div>
-        <div class="flex flex-col items-center px-8 pb-20">
+        <div class="flex flex-col items-center px-8 pb-32">
             <div class="relative">
                 <img id="p-avatar" class="profile-avatar">
                 <input type="file" id="file-avatar" class="hidden" onchange="uploadMedia(this, 'avatar')">
-                <button id="p-edit-avatar" onclick="document.getElementById('file-avatar').click()" class="absolute bottom-2 right-2 bg-cyan-400 p-2 rounded-full text-black text-xs">✎</button>
+                <button id="p-edit-avatar" onclick="document.getElementById('file-avatar').click()" class="absolute bottom-2 right-2 bg-cyan-400 p-2 rounded-full text-black text-xs font-black">✎</button>
             </div>
             
-            <input type="text" id="p-name-input" class="text-3xl font-black italic mt-4 bg-transparent border-b border-white/10 text-center outline-none w-full">
+            <input type="text" id="p-name-input" class="text-3xl font-black italic mt-4 bg-transparent text-center outline-none w-full text-cyan-400">
             
-            <div id="p-friend-status" class="mt-4 hidden">
-                <button onclick="toggleFriend()" id="btn-friend" class="btn-primary py-2 px-6 text-xs w-auto">СТАТИ ДРУЗЯМИ</button>
-                <button onclick="startChatFromProfile()" class="btn-primary py-2 px-6 text-xs w-auto bg-white ml-2">MESSAGE</button>
+            <div id="p-stats" class="flex gap-4 mt-6 w-full">
+                <div class="stat-badge flex-1"><p id="p-total-likes" class="text-lg font-black italic">0</p><p class="text-[8px] font-black text-gray-500">LIKES</p></div>
+                <div class="stat-badge flex-1"><p id="p-total-subs" class="text-lg font-black italic">0</p><p class="text-[8px] font-black text-gray-500">SUBS</p></div>
             </div>
 
-            <div class="w-full mt-10 space-y-4">
-                <div class="p-6 bg-[#111] rounded-[28px] space-y-4">
-                    <div><p id="p-phone" class="font-bold text-gray-400"></p><p class="text-[9px] text-gray-600 font-black">MOBILE</p></div>
-                    <div><p id="p-nick-full" class="font-bold text-cyan-400"></p><p class="text-[9px] text-gray-600 font-black">USERNAME</p></div>
+            <div id="p-friend-status" class="mt-8 flex gap-3 w-full hidden">
+                <button onclick="toggleFollow()" id="btn-follow" class="btn-primary py-4 flex-1">ПІДПИСАТИСЯ</button>
+                <button onclick="startChatFromProfile()" class="btn-primary py-4 flex-1 bg-white">ЧАТ</button>
+            </div>
+
+            <div class="w-full mt-10 space-y-6">
+                <div class="p-6 bg-[#111] rounded-[32px] space-y-5 border border-white/5">
+                    <div><p id="p-phone" class="font-black text-gray-400"></p><p class="text-[8px] text-gray-600 font-black tracking-widest uppercase mt-1">MOBILE</p></div>
+                    <div><p id="p-nick-full" class="font-black text-cyan-400"></p><p class="text-[8px] text-gray-600 font-black tracking-widest uppercase mt-1">USERNAME</p></div>
                     <div>
-                        <input type="text" id="p-bio-input" placeholder="..." class="font-bold bg-transparent outline-none w-full border-b border-white/5">
-                        <p class="text-[9px] text-gray-600 font-black">BIO</p>
-                    </div>
-                    <div>
-                        <div class="flex items-center gap-2">
-                             <input type="date" id="p-bday-input" class="font-bold bg-transparent outline-none flex-1">
-                             <span id="p-age-calc" class="text-cyan-400 font-black text-xs"></span>
-                        </div>
-                        <p class="text-[9px] text-gray-600 font-black">BIRTHDAY</p>
+                        <input type="text" id="p-bio-input" placeholder="Додай інформацію про себе..." class="font-black italic bg-transparent outline-none w-full text-sm">
+                        <p class="text-[8px] text-gray-600 font-black tracking-widest uppercase mt-1">BIO</p>
                     </div>
                 </div>
 
                 <div class="pt-6 border-t border-white/5">
-                    <div class="flex justify-between items-center mb-4">
-                        <h4 class="font-black text-xs text-gray-500 uppercase">Історії користувача</h4>
-                        <button onclick="document.getElementById('file-story').click()" class="text-cyan-400 font-black text-[10px]">+ ДОДАТИ</button>
+                    <div class="flex justify-between items-center mb-6">
+                        <h4 class="font-black text-[10px] text-gray-500 uppercase tracking-widest italic">Gallery / Stories</h4>
+                        <button id="p-add-story-btn" onclick="document.getElementById('file-story').click()" class="text-cyan-400 font-black text-[10px] bg-cyan-400/10 px-4 py-2 rounded-full">+ ADD NEW</button>
                     </div>
                     <div id="p-my-stories" class="profile-story-grid"></div>
                 </div>
@@ -260,24 +271,15 @@
 
         let state = { 
             user: JSON.parse(localStorage.getItem('kolo_v2')), 
-            activeChat: null, 
-            isRecording: false, 
-            mediaRecorder: null, 
-            chunks: [], 
-            otp: null, 
-            temp: null, 
-            viewingNick: null,
-            timerInterval: null,
-            selectedMsgId: null,
-            storyQueue: [],
-            currentStoryIndex: 0,
-            storyTimer: null
+            activeChat: null, isRecording: false, mediaRecorder: null, chunks: [], otp: null, temp: null, 
+            viewingNick: null, timerInterval: null, selectedMsgId: null, selectedMsgText: null,
+            storyQueue: [], currentStoryIndex: 0, storyTimer: null, likedStories: new Set()
         };
 
         function calculateAge(birthday) {
-            if(!birthday) return "0 років";
+            if(!birthday) return "0";
             const diff = Date.now() - new Date(birthday).getTime();
-            return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25)) + " років";
+            return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
         }
 
         async function checkUserAndSendOTP() {
@@ -304,7 +306,7 @@
             if(document.getElementById('otp-input').value === state.otp) {
                 if(!state.temp) {
                     const nick = document.getElementById('reg-nick').value.replace('@','').trim();
-                    const u = { name: document.getElementById('reg-name').value, nick: nick, email: document.getElementById('reg-email').value, phone: document.getElementById('auth-phone').value, bday: document.getElementById('reg-bday').value, bio: "", avatar: "https://api.dicebear.com/7.x/pixel-art/svg?seed="+Date.now(), banner: "https://images.unsplash.com/photo-1557683316-973673baf926", friends: {}, lastSeen: Date.now() };
+                    const u = { name: document.getElementById('reg-name').value, nick: nick, email: document.getElementById('reg-email').value, phone: document.getElementById('auth-phone').value, bday: document.getElementById('reg-bday').value, bio: "", avatar: "https://api.dicebear.com/7.x/pixel-art/svg?seed="+Date.now(), banner: "https://images.unsplash.com/photo-1557683316-973673baf926", friends: {}, lastSeen: Date.now(), followers: 0 };
                     await DB.ref('kolo_users/' + u.nick).set(u);
                     state.user = u;
                 } else state.user = state.temp;
@@ -323,40 +325,25 @@
             document.getElementById('chat-window').classList.remove('hidden');
             document.getElementById('chat-head-av').src = av;
             document.getElementById('chat-head-name').innerText = name;
-            
-            DB.ref(`kolo_status/${nick}`).on('value', s => {
-                const stat = s.val();
-                const el = document.getElementById('chat-status');
-                if(stat && stat.target === state.user.nick && (Date.now() - stat.time) < 3000) el.innerText = stat.text.toUpperCase();
-                else el.innerText = "ONLINE";
-            });
-
             const cid = [state.user.nick, nick].sort().join('_');
             DB.ref('kolo_msgs/'+cid).on('value', s => {
                 const area = document.getElementById('messages-area'); area.innerHTML = '';
                 if(s.val()) Object.entries(s.val()).forEach(([id, m]) => {
                     let content = '';
                     if(m.type === 'circle') content = `<video src="${m.text}" loop playsinline></video>`;
-                    else if(m.type === 'audio') content = `<div class="voice-bubble"><svg class="wave-icon" viewBox="0 0 24 24"><path d="M5 12h2v2H5v-2zm4-4h2v10H9V8zm4-4h2v18h-2V4zm4 8h2v2h-2v-2z"/></svg><span class="text-[10px]">Голосове повідомлення</span></div><audio src="${m.text}"></audio>`;
+                    else if(m.type === 'audio') content = `<div class="voice-bubble"><svg class="wave-icon" viewBox="0 0 24 24"><path d="M5 12h2v2H5v-2zm4-4h2v10H9V8zm4-4h2v18h-2V4zm4 8h2v2h-2v-2z"/></svg><span class="text-[10px]">Голосове</span></div><audio src="${m.text}"></audio>`;
                     else if(m.type === 'image') content = `<img src="${m.text}" class="rounded-lg max-w-full">`;
                     else if(m.type === 'video') content = `<video src="${m.text}" controls class="rounded-lg max-w-full"></video>`;
                     else content = `<p>${m.text}</p>`;
-                    
                     const bClass = m.type === 'circle' ? 'video-note' : 'chat-bubble';
                     const sClass = m.sender === state.user.nick ? 'me' : 'them';
-                    const cClass = m.sender === state.user.nick ? 'self-end' : 'self-start';
-                    
                     const div = document.createElement('div');
-                    div.className = `${cClass} ${bClass} ${sClass}`;
+                    div.className = `${m.sender === state.user.nick ? 'self-end' : 'self-start'} ${bClass} ${sClass}`;
                     div.innerHTML = content;
-                    
                     div.oncontextmenu = (e) => showContextMenu(e, id, m.text);
                     div.onclick = () => {
-                        if(m.type === 'circle') {
-                            div.classList.toggle('fullscreen');
-                            const v = div.querySelector('video');
-                            if(div.classList.contains('fullscreen')) { v.muted = false; v.play(); } else { v.muted = true; }
-                        } else if(m.type === 'audio') { div.querySelector('audio').play(); }
+                        if(m.type === 'circle') { div.classList.toggle('fullscreen'); const v = div.querySelector('video'); v.muted = !div.classList.contains('fullscreen'); v.play(); }
+                        else if(m.type === 'audio') { div.querySelector('audio').play(); }
                     };
                     area.appendChild(div);
                 });
@@ -368,48 +355,31 @@
             const overlay = document.getElementById('record-ui');
             const preview = document.getElementById('record-preview');
             const visual = document.getElementById('audio-visual');
-            const label = document.getElementById('rec-status-label');
-            
-            // Скидання попереднього таймера
             document.getElementById('rec-timer').innerText = "00:00";
-            
-            label.innerText = type === 'video' ? "Запис відео-повідомлення" : "Запис аудіо-повідомлення";
-            updateStatus(type === 'video' ? 'записує відео...' : 'записує голос...');
-
+            document.getElementById('rec-status-label').innerText = type === 'video' ? "Запис кружечка..." : "Запис голосу...";
             try {
                 const constraints = type === 'video' ? { video: { width: 480, height: 480 }, audio: true } : { audio: true };
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                
                 if(type === 'video') { preview.srcObject = stream; preview.classList.remove('hidden'); visual.classList.add('hidden'); }
                 else { preview.classList.add('hidden'); visual.classList.remove('hidden'); }
-                
                 overlay.style.display = 'flex';
                 state.mediaRecorder = new MediaRecorder(stream);
                 state.chunks = [];
                 state.mediaRecorder.ondataavailable = e => state.chunks.push(e.data);
                 state.mediaRecorder.start();
-                
                 let sec = 0;
-                state.timerInterval = setInterval(() => {
-                    sec++;
-                    let m = Math.floor(sec/60).toString().padStart(2, '0');
-                    let s = (sec%60).toString().padStart(2, '0');
-                    document.getElementById('rec-timer').innerText = `${m}:${s}`;
-                    if(sec >= 120) stopRecording(true);
-                }, 1000);
-            } catch(e) { alert("Помилка камери/мікрофона"); }
+                state.timerInterval = setInterval(() => { sec++; document.getElementById('rec-timer').innerText = `00:${sec.toString().padStart(2, '0')}`; if(sec >= 60) stopRecording(true); }, 1000);
+            } catch(e) { alert("Дай доступ до камери/мікро!"); }
         }
 
         function stopRecording(send) {
             clearInterval(state.timerInterval);
             const isVideo = state.mediaRecorder.stream.getVideoTracks().length > 0;
-            const type = isVideo ? 'circle' : 'audio';
-            
             state.mediaRecorder.onstop = async () => {
                 if(send) {
                     const blob = new Blob(state.chunks, { type: isVideo ? 'video/mp4' : 'audio/webm' });
                     const reader = new FileReader();
-                    reader.onload = () => sendMedia(reader.result, type);
+                    reader.onload = () => sendMedia(reader.result, isVideo ? 'circle' : 'audio');
                     reader.readAsDataURL(blob);
                 }
                 state.mediaRecorder.stream.getTracks().forEach(t => t.stop());
@@ -419,14 +389,12 @@
         }
 
         async function uploadStory(input) {
-            const file = input.files[0];
-            if(!file) return;
+            const file = input.files[0]; if(!file) return;
             const reader = new FileReader();
             reader.onload = async () => {
                 const id = Date.now();
-                const type = file.type.startsWith('video') ? 'video' : 'image';
                 await DB.ref(`kolo_stories_db/${state.user.nick}/${id}`).set({
-                    src: reader.result, type: type, time: id, likes: 0, owner: state.user.nick, ownerAv: state.user.avatar
+                    src: reader.result, type: file.type.startsWith('video') ? 'video' : 'image', time: id, likes: 0, owner: state.user.nick, ownerAv: state.user.avatar
                 });
                 if(state.viewingNick === state.user.nick) renderProfile(state.user);
             };
@@ -440,19 +408,21 @@
             document.getElementById('p-phone').innerText = u.phone;
             document.getElementById('p-nick-full').innerText = "@" + u.nick;
             document.getElementById('p-bio-input').value = u.bio || "";
-            document.getElementById('p-bday-input').value = u.bday || "";
-            document.getElementById('p-age-calc').innerText = "(" + calculateAge(u.bday) + ")";
+            document.getElementById('p-total-subs').innerText = u.followers || 0;
             
+            let totalL = 0;
             const myStories = document.getElementById('p-my-stories');
             myStories.innerHTML = '';
             DB.ref(`kolo_stories_db/${u.nick}`).once('value', snap => {
                 if(snap.val()) Object.values(snap.val()).forEach(s => {
+                    totalL += (s.likes || 0);
                     const div = document.createElement('div');
                     div.className = "profile-story-item";
                     div.innerHTML = s.type === 'video' ? `<video src="${s.src}" muted class="w-full h-full object-cover"></video>` : `<img src="${s.src}" class="w-full h-full object-cover">`;
                     div.onclick = () => viewUserStories(u.nick);
                     myStories.appendChild(div);
                 });
+                document.getElementById('p-total-likes').innerText = totalL;
             });
         }
 
@@ -468,50 +438,56 @@
         function showStory() {
             const story = state.storyQueue[state.currentStoryIndex];
             const viewer = document.getElementById('story-viewer');
-            const content = document.getElementById('story-content');
             viewer.classList.remove('hidden');
-            content.innerHTML = story.type === 'video' ? `<video src="${story.src}" autoplay playsinline class="max-h-full"></video>` : `<img src="${story.src}" class="max-w-full max-h-full object-contain">`;
-            
+            document.getElementById('story-content').innerHTML = story.type === 'video' ? `<video src="${story.src}" autoplay playsinline class="max-h-full"></video>` : `<img src="${story.src}" class="max-w-full max-h-full object-contain">`;
             document.getElementById('story-owner-av').src = story.ownerAv;
             document.getElementById('story-owner-name').innerText = story.owner;
             document.getElementById('story-likes').innerText = story.likes || 0;
+            document.getElementById('story-del-btn').classList.toggle('hidden', story.owner !== state.user.nick);
 
-            const progressContainer = document.getElementById('story-progress-container');
-            progressContainer.innerHTML = '';
+            const prog = document.getElementById('story-progress-container');
+            prog.innerHTML = '';
             state.storyQueue.forEach((_, i) => {
                 const bar = document.createElement('div'); bar.className = 'progress-bar';
                 const fill = document.createElement('div'); fill.className = 'progress-fill';
                 if(i < state.currentStoryIndex) fill.style.width = '100%';
-                bar.appendChild(fill); progressContainer.appendChild(bar);
+                bar.appendChild(fill); prog.appendChild(bar);
             });
 
             clearTimeout(state.storyTimer);
-            const activeFill = progressContainer.children[state.currentStoryIndex].firstChild;
-            setTimeout(() => activeFill.style.width = '100%', 50);
-            activeFill.style.transitionDuration = '5s';
-
-            state.storyTimer = setTimeout(() => {
-                if(state.currentStoryIndex < state.storyQueue.length - 1) { state.currentStoryIndex++; showStory(); } 
-                else closeStories();
-            }, 5000);
+            const activeFill = prog.children[state.currentStoryIndex].firstChild;
+            setTimeout(() => { activeFill.style.transition = 'width 5s linear'; activeFill.style.width = '100%'; }, 50);
+            state.storyTimer = setTimeout(() => nextStory(), 5000);
         }
 
+        function nextStory() {
+            if(state.currentStoryIndex < state.storyQueue.length - 1) { state.currentStoryIndex++; showStory(); } 
+            else closeStories();
+        }
+        function prevStory() {
+            if(state.currentStoryIndex > 0) { state.currentStoryIndex--; showStory(); }
+        }
         function closeStories() { document.getElementById('story-viewer').classList.add('hidden'); clearTimeout(state.storyTimer); }
 
         async function likeStory() {
             const s = state.storyQueue[state.currentStoryIndex];
+            const key = `like_${s.owner}_${s.time}`;
+            if(state.likedStories.has(key)) return;
+            state.likedStories.add(key);
             await DB.ref(`kolo_stories_db/${s.owner}/${s.time}/likes`).transaction(c => (c || 0) + 1);
             document.getElementById('story-likes').innerText = (s.likes || 0) + 1;
         }
 
-        function dislikeStory() {
-            if(state.currentStoryIndex < state.storyQueue.length - 1) { state.currentStoryIndex++; showStory(); } 
-            else closeStories();
+        async function deleteStoryFromView() {
+            const s = state.storyQueue[state.currentStoryIndex];
+            if(s.owner === state.user.nick) {
+                await DB.ref(`kolo_stories_db/${s.owner}/${s.time}`).remove();
+                closeStories(); renderProfile(state.user);
+            }
         }
 
         function sendMsg() {
-            const i = document.getElementById('msg-input'); 
-            if(!i.value.trim() || !state.activeChat) return;
+            const i = document.getElementById('msg-input'); if(!i.value.trim()) return;
             const cid = [state.user.nick, state.activeChat].sort().join('_');
             const msg = { sender: state.user.nick, text: i.value, type: 'text', time: Date.now() };
             DB.ref('kolo_msgs/'+cid).push(msg);
@@ -522,24 +498,39 @@
 
         async function sendMedia(data, type) {
             const cid = [state.user.nick, state.activeChat].sort().join('_');
-            const msg = { sender: state.user.nick, text: data, type: type, time: Date.now() };
-            await DB.ref('kolo_msgs/'+cid).push(msg);
-            const label = type === 'circle' ? '🎥 Відео-повідомлення' : type === 'audio' ? '🎤 Голосове повідомлення' : '📎 Файл';
-            DB.ref(`kolo_chats/${state.user.nick}/${state.activeChat}`).set({ last: label, time: Date.now() });
-            DB.ref(`kolo_chats/${state.activeChat}/${state.user.nick}`).set({ last: label, time: Date.now() });
+            await DB.ref('kolo_msgs/'+cid).push({ sender: state.user.nick, text: data, type: type, time: Date.now() });
+            const lbl = type === 'circle' ? '🎥 Кружечок' : type === 'audio' ? '🎤 Голос' : '📎 Файл';
+            DB.ref(`kolo_chats/${state.user.nick}/${state.activeChat}`).set({ last: lbl, time: Date.now() });
+            DB.ref(`kolo_chats/${state.activeChat}/${state.user.nick}`).set({ last: lbl, time: Date.now() });
         }
 
         function showContextMenu(e, id, text) {
-            e.preventDefault();
-            state.selectedMsgId = id;
-            state.selectedMsgText = text;
+            e.preventDefault(); state.selectedMsgId = id; state.selectedMsgText = text;
             const menu = document.getElementById('msg-context-menu');
             menu.style.display = 'block';
-            menu.style.left = Math.min(e.pageX || e.touches[0].pageX, window.innerWidth - 150) + 'px';
-            menu.style.top = Math.min(e.pageY || e.touches[0].pageY, window.innerHeight - 100) + 'px';
+            menu.style.left = Math.min(e.pageX || e.touches[0].pageX, window.innerWidth - 160) + 'px';
+            menu.style.top = Math.min(e.pageY || e.touches[0].pageY, window.innerHeight - 150) + 'px';
         }
 
         function hideMenu() { document.getElementById('msg-context-menu').style.display = 'none'; }
+        
+        async function openForwardMenu() {
+            hideMenu();
+            const list = document.getElementById('forward-targets'); list.innerHTML = '';
+            document.getElementById('forward-list').style.display = 'flex';
+            const snap = await DB.ref(`kolo_chats/${state.user.nick}`).once('value');
+            if(snap.val()) Object.keys(snap.val()).forEach(target => {
+                list.innerHTML += `<div onclick="forwardTo('${target}')" class="p-4 bg-[#111] rounded-2xl font-bold italic">➡️ ${target}</div>`;
+            });
+        }
+
+        async function forwardTo(nick) {
+            const cid = [state.user.nick, nick].sort().join('_');
+            await DB.ref('kolo_msgs/'+cid).push({ sender: state.user.nick, text: state.selectedMsgText, type: 'text', time: Date.now(), forwarded: true });
+            document.getElementById('forward-list').style.display = 'none';
+            alert('Відправлено!');
+        }
+
         async function handleDeleteMsg() {
             const cid = [state.user.nick, state.activeChat].sort().join('_');
             await DB.ref(`kolo_msgs/${cid}/${state.selectedMsgId}`).remove();
@@ -564,9 +555,8 @@
                 if(!snap.val()) return;
                 const sorted = Object.entries(snap.val()).sort((a,b) => b[1].time - a[1].time);
                 for(let [nick, data] of sorted) {
-                    const uSnap = await DB.ref('kolo_users/'+nick).once('value');
-                    const u = uSnap.val();
-                    if(u) list.innerHTML += `<div onclick="openChat('${u.nick}','${u.avatar}','${u.name}')" class="flex items-center gap-4 p-4 bg-[#111] rounded-[24px]"><img src="${u.avatar}" class="w-14 h-14 rounded-full object-cover"><div class="flex-1 font-bold"><h4>${u.name}</h4><p class="text-xs text-gray-500 truncate">${data.last}</p></div></div>`;
+                    const u = (await DB.ref('kolo_users/'+nick).once('value')).val();
+                    if(u) list.innerHTML += `<div onclick="openChat('${u.nick}','${u.avatar}','${u.name}')" class="flex items-center gap-4 p-4 bg-[#111] rounded-[28px] border border-white/5"><img src="${u.avatar}" class="w-14 h-14 rounded-full object-cover"><div class="flex-1 font-bold"><h4>${u.name}</h4><p class="text-xs text-gray-500 truncate">${data.last}</p></div></div>`;
                 }
             });
         }
@@ -578,14 +568,11 @@
         function logout() { localStorage.clear(); location.reload(); }
 
         async function searchUsers(val) {
-            const results = document.getElementById('search-results');
-            results.innerHTML = ''; if(val.length < 2) return;
+            const res = document.getElementById('search-results'); res.innerHTML = ''; if(val.length < 2) return;
             const snap = await DB.ref('kolo_users').once('value');
-            for(let id in snap.val()) {
-                if(id.includes(val.toLowerCase()) && id !== state.user.nick) {
-                    const u = snap.val()[id];
-                    results.innerHTML += `<div class="p-4 bg-[#111] rounded-2xl flex items-center gap-4" onclick="viewForeignProfile('${u.nick}')"><img src="${u.avatar}" class="w-12 h-12 rounded-full object-cover"><div><h4 class="font-bold">${u.name}</h4><p class="text-xs text-cyan-400">@${u.nick}</p></div></div>`;
-                }
+            for(let id in snap.val()) if(id.includes(val.toLowerCase()) && id !== state.user.nick) {
+                const u = snap.val()[id];
+                res.innerHTML += `<div class="p-4 bg-[#111] rounded-2xl flex items-center gap-4" onclick="viewForeignProfile('${u.nick}')"><img src="${u.avatar}" class="w-12 h-12 rounded-full object-cover"><div><h4 class="font-bold">${u.name}</h4><p class="text-xs text-cyan-400">@${u.nick}</p></div></div>`;
             }
         }
 
@@ -596,11 +583,18 @@
             reader.readAsDataURL(input.files[0]);
         }
 
-        async function toggleFriend() {
+        async function toggleFollow() {
             const t = state.viewingNick;
             const isF = state.user.friends && state.user.friends[t];
-            if(isF) { await DB.ref(`kolo_users/${state.user.nick}/friends/${t}`).remove(); await DB.ref(`kolo_users/${t}/friends/${state.user.nick}`).remove(); delete state.user.friends[t]; }
-            else { await DB.ref(`kolo_users/${state.user.nick}/friends/${t}`).set(true); await DB.ref(`kolo_users/${t}/friends/${state.user.nick}`).set(true); if(!state.user.friends) state.user.friends = {}; state.user.friends[t] = true; }
+            if(isF) { 
+                await DB.ref(`kolo_users/${state.user.nick}/friends/${t}`).remove();
+                await DB.ref(`kolo_users/${t}/followers`).transaction(c => (c || 1) - 1);
+                delete state.user.friends[t];
+            } else { 
+                await DB.ref(`kolo_users/${state.user.nick}/friends/${t}`).set(true);
+                await DB.ref(`kolo_users/${t}/followers`).transaction(c => (c || 0) + 1);
+                if(!state.user.friends) state.user.friends = {}; state.user.friends[t] = true;
+            }
             localStorage.setItem('kolo_v2', JSON.stringify(state.user));
             viewForeignProfile(t);
         }
@@ -608,8 +602,8 @@
         function uploadMedia(input, type) {
             const reader = new FileReader();
             reader.onload = async () => {
-                const update = {}; update[type] = reader.result;
-                await DB.ref('kolo_users/'+state.user.nick).update(update);
+                const up = {}; up[type] = reader.result;
+                await DB.ref('kolo_users/'+state.user.nick).update(up);
                 state.user[type] = reader.result;
                 localStorage.setItem('kolo_v2', JSON.stringify(state.user));
                 renderProfile(state.user);
@@ -622,14 +616,11 @@
             await DB.ref(`kolo_msgs/${cid}`).remove();
         }
 
-        function viewMyProfile() { togglePage('profile', true); state.viewingNick = state.user.nick; document.getElementById('p-edit-banner').classList.remove('hidden'); document.getElementById('p-edit-avatar').classList.remove('hidden'); document.getElementById('p-name-input').readOnly = false; document.getElementById('p-bio-input').readOnly = false; document.getElementById('p-bday-input').readOnly = false; document.getElementById('p-friend-status').classList.add('hidden'); renderProfile(state.user); }
-
-        async function viewForeignProfile(nick) { togglePage('profile', true); toggleSearch(false); const snap = await DB.ref('kolo_users/' + nick).once('value'); const u = snap.val(); state.viewingNick = nick; document.getElementById('p-edit-banner').classList.add('hidden'); document.getElementById('p-edit-avatar').classList.add('hidden'); document.getElementById('p-name-input').readOnly = true; document.getElementById('p-bio-input').readOnly = true; document.getElementById('p-bday-input').readOnly = true; document.getElementById('p-friend-status').classList.remove('hidden'); const isFriend = state.user.friends && state.user.friends[nick]; document.getElementById('btn-friend').innerText = isFriend ? "ВИДАЛИТИ" : "ДОДАТИ"; renderProfile(u); }
-
+        function viewMyProfile() { togglePage('profile', true); state.viewingNick = state.user.nick; document.getElementById('p-edit-banner').classList.remove('hidden'); document.getElementById('p-edit-avatar').classList.remove('hidden'); document.getElementById('p-add-story-btn').classList.remove('hidden'); document.getElementById('p-friend-status').classList.add('hidden'); renderProfile(state.user); }
+        async function viewForeignProfile(nick) { togglePage('profile', true); toggleSearch(false); const u = (await DB.ref('kolo_users/' + nick).once('value')).val(); state.viewingNick = nick; document.getElementById('p-edit-banner').classList.add('hidden'); document.getElementById('p-edit-avatar').classList.add('hidden'); document.getElementById('p-add-story-btn').classList.add('hidden'); document.getElementById('p-friend-status').classList.remove('hidden'); document.getElementById('btn-follow').innerText = (state.user.friends && state.user.friends[nick]) ? "ВІДПИСАТИСЯ" : "ПІДПИСАТИСЯ"; renderProfile(u); }
         function startChatFromProfile() { togglePage('profile', false); openChat(state.viewingNick, document.getElementById('p-avatar').src, document.getElementById('p-name-input').value); }
 
         window.onclick = hideMenu;
-
         window.onload = () => {
             if(state.user) {
                 document.getElementById('auth-screen').classList.add('hidden');
@@ -638,13 +629,11 @@
                 document.getElementById('menu-avatar').src = state.user.avatar;
                 document.getElementById('menu-nick').innerText = "@" + state.user.nick;
                 initListeners();
-                setInterval(() => DB.ref(`kolo_users/${state.user.nick}`).update({ lastSeen: Date.now() }), 60000);
             }
         };
 
         document.getElementById('p-name-input').onchange = (e) => { DB.ref('kolo_users/'+state.user.nick).update({name: e.target.value}); state.user.name = e.target.value; localStorage.setItem('kolo_v2', JSON.stringify(state.user)); };
         document.getElementById('p-bio-input').onchange = (e) => { DB.ref('kolo_users/'+state.user.nick).update({bio: e.target.value}); state.user.bio = e.target.value; localStorage.setItem('kolo_v2', JSON.stringify(state.user)); };
-        document.getElementById('p-bday-input').onchange = (e) => { DB.ref('kolo_users/'+state.user.nick).update({bday: e.target.value}); state.user.bday = e.target.value; localStorage.setItem('kolo_v2', JSON.stringify(state.user)); };
     </script>
 </body>
 </html>
