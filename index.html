@@ -406,6 +406,13 @@
         }
 
         function openChat(nick, av, name) {
+            // ОЧИСТКА СЛУХАЧІВ ПРИ ВІДКРИТТІ
+            if (state.activeChat) {
+                const oldCid = [state.user.nick, state.activeChat].sort().join('_');
+                DB.ref(`kolo_status/${state.activeChat}`).off();
+                DB.ref('kolo_msgs/' + oldCid).off();
+            }
+
             state.activeChat = nick;
             state.activePinnedIndex = 0;
             document.getElementById('chat-window').classList.remove('hidden');
@@ -414,9 +421,6 @@
             
             const cid = [state.user.nick, nick].sort().join('_');
             
-            DB.ref(`kolo_status/${nick}`).off();
-            DB.ref('kolo_msgs/'+cid).off();
-
             DB.ref(`kolo_status/${nick}`).on('value', s => {
                 const stat = s.val();
                 const el = document.getElementById('chat-status');
@@ -441,9 +445,9 @@
                         if(m.sender !== state.user.nick && !m.read) DB.ref(`kolo_msgs/${cid}/${id}/read`).set(true);
                         
                         let content = '';
-                        if(m.type === 'circle') content = `<video src="${m.text}" loop playsinline></video>`;
+                        if(m.type === 'circle') content = `<video src="${m.text}" loop playsinline muted></video>`;
                         else if(m.type === 'audio') content = `<div class="voice-bubble"><svg class="wave-icon" viewBox="0 0 24 24"><path d="M5 12h2v2H5v-2zm4-4h2v10H9V8zm4-4h2v18h-2V4zm4 8h2v2h-2v-2z"/></svg></div><audio src="${m.text}"></audio>`;
-                        else if(m.type === 'image') content = `<img src="${m.text}" class="rounded-lg max-w-full">`;
+                        else if(m.type === 'image') content = `<img src="${m.text}" class="rounded-lg max-w-full" loading="lazy">`;
                         else if(m.type === 'video') content = `<video src="${m.text}" controls class="rounded-lg max-w-full"></video>`;
                         else content = `<p>${m.text}</p>`;
                         
@@ -471,7 +475,8 @@
                     });
                 }
                 updatePinnedBar();
-                area.scrollTop = area.scrollHeight;
+                // АВТО-СКРОЛ ПРИ ВІДКРИТТІ
+                area.scrollTo({ top: area.scrollHeight, behavior: 'smooth' });
             });
         }
 
@@ -631,13 +636,10 @@
             const viewer = document.getElementById('story-viewer');
             const content = document.getElementById('story-content');
             viewer.classList.remove('hidden');
-            content.innerHTML = story.type === 'video' ? `<video src="${story.src}" autoplay playsinline class="max-h-full"></video>` : `<img src="${story.src}" class="max-w-full max-h-full object-contain">`;
             
-            document.getElementById('story-owner-av').src = story.ownerAv;
-            document.getElementById('story-owner-name').innerText = story.owner;
-            document.getElementById('story-likes').innerText = story.likes || 0;
-            
-            document.getElementById('story-del-btn').classList.toggle('hidden', story.owner !== state.user.nick);
+            // ФІКС ТАЙМЕРА СТОРІЗ
+            clearTimeout(state.storyTimer);
+            content.innerHTML = '';
 
             const progressContainer = document.getElementById('story-progress-container');
             progressContainer.innerHTML = '';
@@ -648,15 +650,41 @@
                 bar.appendChild(fill); progressContainer.appendChild(bar);
             });
 
-            clearTimeout(state.storyTimer);
             const activeFill = progressContainer.children[state.currentStoryIndex].firstChild;
-            setTimeout(() => activeFill.style.width = '100%', 50);
-            activeFill.style.transitionDuration = '5s';
+            
+            if (story.type === 'video') {
+                const video = document.createElement('video');
+                video.src = story.src;
+                video.autoplay = true;
+                video.playsInline = true;
+                video.className = "max-h-full";
+                video.onloadedmetadata = () => {
+                    const duration = video.duration * 1000;
+                    activeFill.style.transition = `width ${duration}ms linear`;
+                    setTimeout(() => activeFill.style.width = '100%', 50);
+                    state.storyTimer = setTimeout(nextStory, duration);
+                };
+                content.appendChild(video);
+            } else {
+                content.innerHTML = `<img src="${story.src}" class="max-w-full max-h-full object-contain">`;
+                activeFill.style.transition = `width 5000ms linear`;
+                setTimeout(() => activeFill.style.width = '100%', 50);
+                state.storyTimer = setTimeout(nextStory, 5000);
+            }
+            
+            document.getElementById('story-owner-av').src = story.ownerAv;
+            document.getElementById('story-owner-name').innerText = story.owner;
+            document.getElementById('story-likes').innerText = story.likes || 0;
+            document.getElementById('story-del-btn').classList.toggle('hidden', story.owner !== state.user.nick);
+        }
 
-            state.storyTimer = setTimeout(() => {
-                if(state.currentStoryIndex < state.storyQueue.length - 1) { state.currentStoryIndex++; showStory(); } 
-                else closeStories();
-            }, 5000);
+        function nextStory() {
+            if(state.currentStoryIndex < state.storyQueue.length - 1) { 
+                state.currentStoryIndex++; 
+                showStory(); 
+            } else {
+                closeStories();
+            }
         }
 
         function handleStoryClick(e) {
@@ -874,4 +902,3 @@
         document.getElementById('p-bday-input').onchange = (e) => { DB.ref('kolo_users/'+state.user.nick).update({bday: e.target.value}); state.user.bday = e.target.value; localStorage.setItem('kolo_v2', JSON.stringify(state.user)); };
     </script>
 </body>
-</html>
